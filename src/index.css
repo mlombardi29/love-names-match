@@ -2,39 +2,53 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Beautiful baby name app design system - warm, nurturing colors */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 32 30% 97%;
+    --foreground: 345 25% 20%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 345 25% 20%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 345 25% 20%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 345 75% 65%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 185 100% 90%;
+    --secondary-foreground: 345 25% 20%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 32 30% 94%;
+    --muted-foreground: 345 15% 55%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 45 100% 85%;
+    --accent-foreground: 345 25% 20%;
 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 32 20% 88%;
+    --input: 32 20% 88%;
+    --ring: 345 75% 65%;
+
+    /* Custom design tokens for baby name app */
+    --gradient-warm: linear-gradient(135deg, hsl(345 75% 65%), hsl(25 85% 75%));
+    --gradient-soft: linear-gradient(180deg, hsl(185 100% 95%), hsl(32 30% 97%));
+    --gradient-celebration: linear-gradient(45deg, hsl(45 100% 70%), hsl(345 75% 75%));
+    
+    --shadow-card: 0 4px 20px -4px hsl(345 75% 65% / 0.15);
+    --shadow-celebration: 0 8px 32px -8px hsl(345 75% 65% / 0.3);
+    
+    --love: 345 75% 65%;
+    --love-foreground: 0 0% 100%;
+    --pass: 215 25% 70%;
+    --pass-foreground: 0 0% 100%;
+    
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
     --radius: 0.5rem;
 
@@ -56,33 +70,38 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 345 15% 8%;
+    --foreground: 32 30% 95%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 345 20% 12%;
+    --card-foreground: 32 30% 95%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 345 20% 12%;
+    --popover-foreground: 32 30% 95%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 345 75% 70%;
+    --primary-foreground: 345 15% 8%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 185 50% 20%;
+    --secondary-foreground: 32 30% 95%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 345 15% 15%;
+    --muted-foreground: 345 10% 60%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 45 80% 25%;
+    --accent-foreground: 32 30% 95%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 32 30% 95%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --border: 345 15% 20%;
+    --input: 345 15% 20%;
+    --ring: 345 75% 70%;
+
+    --love: 345 75% 70%;
+    --love-foreground: 345 15% 8%;
+    --pass: 215 25% 40%;
+    --pass-foreground: 32 30% 95%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
