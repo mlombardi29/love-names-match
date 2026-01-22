@@ -8,6 +8,37 @@ interface CelebrationModalProps {
   onClose: () => void;
 }
 
+const getGenderStyle = (gender: string) => {
+  switch (gender) {
+    case 'girl':
+      return 'bg-pink-100 text-pink-700 dark:bg-pink-900/60 dark:text-pink-300';
+    case 'boy':
+      return 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300';
+    case 'unisex':
+      return 'bg-violet-100 text-violet-700 dark:bg-violet-900/60 dark:text-violet-300';
+    default:
+      return 'bg-gray-100 text-gray-700';
+  }
+};
+
+const getGenderEmoji = (gender: string) => {
+  switch (gender) {
+    case 'girl': return '👧';
+    case 'boy': return '👦';
+    case 'unisex': return '✨';
+    default: return '👶';
+  }
+};
+
+const getGenderLabel = (gender: string) => {
+  switch (gender) {
+    case 'girl': return 'Girl';
+    case 'boy': return 'Boy';
+    case 'unisex': return 'Unisex';
+    default: return 'Baby';
+  }
+};
+
 export const CelebrationModal = ({ match, onClose }: CelebrationModalProps) => {
   const [show, setShow] = useState(false);
 
@@ -16,7 +47,7 @@ export const CelebrationModal = ({ match, onClose }: CelebrationModalProps) => {
       setShow(true);
       const timer = setTimeout(() => {
         setShow(false);
-        setTimeout(onClose, 300);
+        setTimeout(onClose, 200);
       }, 3000);
       return () => clearTimeout(timer);
     }
@@ -24,83 +55,79 @@ export const CelebrationModal = ({ match, onClose }: CelebrationModalProps) => {
 
   if (!match) return null;
 
+  const matchLabel = match.partner1Decision === 'superlike' && match.partner2Decision === 'superlike'
+    ? 'Both Superliked!'
+    : match.partner1Decision === 'superlike' || match.partner2Decision === 'superlike'
+    ? 'Someone Superliked!'
+    : 'You both liked this name!';
+
   return (
     <Dialog open={show} onOpenChange={setShow}>
-      <DialogContent className="max-w-md mx-auto bg-gradient-celebration border-0 text-center overflow-hidden">
-        <div className="relative p-8">
-          {/* Animated background elements */}
-          <div className="absolute inset-0 pointer-events-none">
-            {[...Array(12)].map((_, i) => (
+      <DialogContent className="max-w-sm mx-auto bg-gradient-to-br from-primary to-pink-500 border-0 text-center overflow-hidden rounded-2xl">
+        <div className="relative py-8 px-6">
+          {/* Floating icons */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            {[...Array(10)].map((_, i) => (
               <div
                 key={i}
-                className="absolute animate-bounce"
+                className="absolute animate-bounce opacity-60"
                 style={{
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
+                  left: `${10 + Math.random() * 80}%`,
+                  top: `${10 + Math.random() * 80}%`,
                   animationDelay: `${Math.random() * 2}s`,
                   animationDuration: `${1.5 + Math.random()}s`
                 }}
               >
                 {match.isSuperMatch ? (
-                  <Star className="w-4 h-4 text-superlike fill-current opacity-80" />
-                ) : Math.random() > 0.5 ? (
-                  <Heart className="w-4 h-4 text-like fill-current opacity-60" />
+                  <Star className="w-4 h-4 text-yellow-300 fill-current" />
                 ) : (
-                  <Sparkles className="w-4 h-4 text-accent opacity-60" />
+                  <Heart className="w-4 h-4 text-white fill-current" />
                 )}
               </div>
             ))}
           </div>
 
           <div className="relative z-10">
-            <div className="text-6xl mb-4 animate-pulse">
+            <div className="text-6xl mb-4">
               {match.isSuperMatch ? '⭐' : '🎉'}
             </div>
             
-            <h2 className="text-3xl font-bold mb-2 text-white">
-              {match.isSuperMatch ? 'Super Match!' : "It's a Match!"}
+            <h2 className="text-2xl font-bold mb-1 text-white">
+              It's a Match!
             </h2>
             
-            <p className="text-lg text-white/90 mb-6">
-              {match.isSuperMatch 
-                ? 'Someone superliked this name!' 
-                : 'You both like the name'}
+            <p className="text-white/80 mb-6 text-sm">
+              {matchLabel}
             </p>
             
-            <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 mb-6">
-              <div className={`
-                inline-flex px-4 py-2 rounded-full text-sm font-medium mb-3
-                ${match.name.gender === 'girl' 
-                  ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white' 
-                  : 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white'
-                }
-              `}>
-                {match.name.gender === 'girl' ? '👧' : '👦'} {match.name.gender === 'girl' ? 'Girl' : 'Boy'}
-              </div>
+            <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6">
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold mb-3 ${getGenderStyle(match.name.gender)}`}>
+                {getGenderEmoji(match.name.gender)} {getGenderLabel(match.name.gender)}
+              </span>
               
               <h3 className="text-4xl font-bold text-white mb-2">
                 {match.name.name}
               </h3>
               
               {match.name.isCustom && (
-                <div className="inline-flex px-3 py-1 rounded-full bg-white/30 text-white text-xs font-medium">
-                  ✨ Custom Addition
-                </div>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/30 text-white text-xs">
+                  ✨ Custom
+                </span>
               )}
             </div>
 
-            <div className="flex items-center justify-center gap-2 text-white/80">
+            <div className="flex items-center justify-center gap-2 mt-6 text-white/80">
               {match.isSuperMatch ? (
                 <>
-                  <Star className="w-5 h-5 fill-current text-superlike" />
-                  <span className="font-medium">Added to your favorites!</span>
-                  <Star className="w-5 h-5 fill-current text-superlike" />
+                  <Star className="w-4 h-4 fill-current text-yellow-300" />
+                  <span className="text-sm font-medium">Super Match!</span>
+                  <Star className="w-4 h-4 fill-current text-yellow-300" />
                 </>
               ) : (
                 <>
-                  <Heart className="w-5 h-5 fill-current text-like" />
-                  <span className="font-medium">Added to your favorites!</span>
-                  <Heart className="w-5 h-5 fill-current text-like" />
+                  <Heart className="w-4 h-4 fill-current" />
+                  <span className="text-sm font-medium">Added to favorites</span>
+                  <Heart className="w-4 h-4 fill-current" />
                 </>
               )}
             </div>

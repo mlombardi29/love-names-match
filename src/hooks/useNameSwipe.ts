@@ -15,6 +15,8 @@ export interface MatchedName {
   name: BabyName;
   matchedAt: number;
   isSuperMatch?: boolean;
+  partner1Decision: SwipeDecision;
+  partner2Decision: SwipeDecision;
 }
 
 export const useNameSwipe = (names: BabyName[]) => {
@@ -51,18 +53,23 @@ export const useNameSwipe = (names: BabyName[]) => {
 
     // Check if this creates a match (both partners liked or superliked)
     const otherPartner = currentPartner === 'partner1' ? 'partner2' : 'partner1';
-    const otherPartnerDecision = swipeHistory.find(
+    const otherPartnerRecord = swipeHistory.find(
       record => record.nameId === currentName.id && 
       record.partner === otherPartner &&
       (record.decision === 'like' || record.decision === 'superlike')
     );
 
-    if ((decision === 'like' || decision === 'superlike') && otherPartnerDecision) {
-      const isSuperMatch = decision === 'superlike' || otherPartnerDecision.decision === 'superlike';
+    if ((decision === 'like' || decision === 'superlike') && otherPartnerRecord) {
+      const isSuperMatch = decision === 'superlike' || otherPartnerRecord.decision === 'superlike';
+      const partner1Decision = currentPartner === 'partner1' ? decision : otherPartnerRecord.decision;
+      const partner2Decision = currentPartner === 'partner2' ? decision : otherPartnerRecord.decision;
+      
       return {
         name: currentName,
         matchedAt: Date.now(),
-        isSuperMatch
+        isSuperMatch,
+        partner1Decision,
+        partner2Decision
       } as MatchedName;
     }
 
@@ -88,7 +95,9 @@ export const useNameSwipe = (names: BabyName[]) => {
           matches.push({
             name,
             matchedAt: Math.max(p1Like.timestamp, p2Like.timestamp),
-            isSuperMatch
+            isSuperMatch,
+            partner1Decision: p1Like.decision,
+            partner2Decision: p2Like.decision
           });
         }
       }
@@ -109,6 +118,11 @@ export const useNameSwipe = (names: BabyName[]) => {
     };
   }, [currentNameIndex, names.length]);
 
+  const addMoreNames = useCallback((newNames: BabyName[]) => {
+    // This will be handled at the parent level
+    return newNames;
+  }, []);
+
   return {
     currentPartner,
     getCurrentName,
@@ -117,6 +131,7 @@ export const useNameSwipe = (names: BabyName[]) => {
     switchPartner,
     getPartnerProgress,
     swipeHistory,
-    isComplete: currentNameIndex[currentPartner] >= names.length
+    isComplete: currentNameIndex[currentPartner] >= names.length,
+    addMoreNames
   };
 };

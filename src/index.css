@@ -1,119 +1,113 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Beautiful baby name app design system - warm, nurturing colors */
+/* Airbnb-inspired design system - clean, warm, and friendly */
 
 @layer base {
   :root {
-    --background: 32 30% 97%;
-    --foreground: 345 25% 20%;
+    --background: 0 0% 100%;
+    --foreground: 0 0% 13%;
 
     --card: 0 0% 100%;
-    --card-foreground: 345 25% 20%;
+    --card-foreground: 0 0% 13%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 345 25% 20%;
+    --popover-foreground: 0 0% 13%;
 
-    --primary: 345 75% 65%;
+    --primary: 350 80% 55%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 185 100% 90%;
-    --secondary-foreground: 345 25% 20%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 13%;
 
-    --muted: 32 30% 94%;
-    --muted-foreground: 345 15% 55%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
 
-    --accent: 45 100% 85%;
-    --accent-foreground: 345 25% 20%;
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 13%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 32 20% 88%;
-    --input: 32 20% 88%;
-    --ring: 345 75% 65%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 350 80% 55%;
 
-    /* Custom design tokens for baby name app */
-    --gradient-warm: linear-gradient(135deg, hsl(345 75% 65%), hsl(25 85% 75%));
-    --gradient-soft: linear-gradient(180deg, hsl(185 100% 95%), hsl(32 30% 97%));
-    --gradient-celebration: linear-gradient(45deg, hsl(45 100% 70%), hsl(345 75% 75%));
-    
-    --shadow-card: 0 4px 20px -4px hsl(345 75% 65% / 0.15);
-    --shadow-celebration: 0 8px 32px -8px hsl(345 75% 65% / 0.3);
-    
-    --like: 345 75% 65%;
+    /* Action colors */
+    --like: 350 80% 55%;
     --like-foreground: 0 0% 100%;
     --superlike: 45 100% 50%;
-    --superlike-foreground: 0 0% 0%;
-    --pass: 215 25% 70%;
+    --superlike-foreground: 0 0% 13%;
+    --pass: 0 0% 70%;
     --pass-foreground: 0 0% 100%;
     
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-bounce: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-
-    --radius: 0.5rem;
+    /* Custom design tokens */
+    --gradient-warm: linear-gradient(135deg, hsl(350 80% 55%), hsl(350 80% 65%));
+    --gradient-soft: linear-gradient(180deg, hsl(0 0% 100%), hsl(0 0% 98%));
+    --gradient-celebration: linear-gradient(135deg, hsl(350 80% 55%), hsl(25 85% 60%));
+    
+    --shadow-card: 0 6px 16px rgba(0, 0, 0, 0.08);
+    --shadow-celebration: 0 12px 32px rgba(0, 0, 0, 0.12);
+    
+    --radius: 0.75rem;
 
     --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-foreground: 0 0% 45%;
+    --sidebar-primary: 350 80% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 96%;
+    --sidebar-accent-foreground: 0 0% 13%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 350 80% 55%;
   }
 
   .dark {
-    --background: 345 15% 8%;
-    --foreground: 32 30% 95%;
+    --background: 0 0% 7%;
+    --foreground: 0 0% 95%;
 
-    --card: 345 20% 12%;
-    --card-foreground: 32 30% 95%;
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 95%;
 
-    --popover: 345 20% 12%;
-    --popover-foreground: 32 30% 95%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 95%;
 
-    --primary: 345 75% 70%;
-    --primary-foreground: 345 15% 8%;
+    --primary: 350 80% 60%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 185 50% 20%;
-    --secondary-foreground: 32 30% 95%;
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 95%;
 
-    --muted: 345 15% 15%;
-    --muted-foreground: 345 10% 60%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 55%;
 
-    --accent: 45 80% 25%;
-    --accent-foreground: 32 30% 95%;
+    --accent: 0 0% 15%;
+    --accent-foreground: 0 0% 95%;
 
     --destructive: 0 75% 55%;
-    --destructive-foreground: 32 30% 95%;
+    --destructive-foreground: 0 0% 95%;
 
-    --border: 345 15% 20%;
-    --input: 345 15% 20%;
-    --ring: 345 75% 70%;
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
+    --ring: 350 80% 60%;
 
-    --like: 345 75% 70%;
-    --like-foreground: 345 15% 8%;
+    --like: 350 80% 60%;
+    --like-foreground: 0 0% 100%;
     --superlike: 45 100% 55%;
-    --superlike-foreground: 0 0% 0%;
-    --pass: 215 25% 40%;
-    --pass-foreground: 32 30% 95%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --superlike-foreground: 0 0% 7%;
+    --pass: 0 0% 40%;
+    --pass-foreground: 0 0% 95%;
+    
+    --sidebar-background: 0 0% 10%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 350 80% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 0 0% 15%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 0 0% 18%;
+    --sidebar-ring: 350 80% 60%;
   }
 }
 
@@ -122,7 +116,25 @@
     @apply border-border;
   }
 
+  html {
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+@layer utilities {
+  .airbnb-shadow {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  }
+
+  .airbnb-shadow-lg {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  }
+
+  .airbnb-border {
+    border: 1px solid hsl(var(--border));
   }
 }

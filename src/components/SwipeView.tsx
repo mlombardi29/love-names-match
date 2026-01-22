@@ -1,10 +1,12 @@
-import { BabyName, CulturalOrigin } from '@/data/names';
+import { BabyName, CulturalOrigin, Gender } from '@/data/names';
 import { useNameSwipe } from '@/hooks/useNameSwipe';
 import { NameCard } from './NameCard';
 import { PartnerSelector } from './PartnerSelector';
 import { CultureFilter } from './CultureFilter';
+import { GenderFilter } from './GenderFilter';
+import { GetMoreNames } from './GetMoreNames';
 import { Progress } from '@/components/ui/progress';
-import { RefreshCw, Heart } from 'lucide-react';
+import { RefreshCw, Heart, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface SwipeViewProps {
@@ -13,9 +15,23 @@ interface SwipeViewProps {
   onMatch: (match: any) => void;
   selectedOrigins: CulturalOrigin[];
   onOriginsChange: (origins: CulturalOrigin[]) => void;
+  selectedGender: Gender | 'all';
+  onGenderChange: (gender: Gender | 'all') => void;
+  onAddNames: (names: BabyName[]) => void;
+  matches: any[];
 }
 
-export const SwipeView = ({ names, nameSwipe, onMatch, selectedOrigins, onOriginsChange }: SwipeViewProps) => {
+export const SwipeView = ({ 
+  names, 
+  nameSwipe, 
+  onMatch, 
+  selectedOrigins, 
+  onOriginsChange,
+  selectedGender,
+  onGenderChange,
+  onAddNames,
+  matches
+}: SwipeViewProps) => {
   const {
     currentPartner,
     getCurrentName,
@@ -37,29 +53,39 @@ export const SwipeView = ({ names, nameSwipe, onMatch, selectedOrigins, onOrigin
   };
 
   const handleRestart = () => {
-    window.location.reload(); // Simple restart for demo
+    window.location.reload();
   };
 
   if (isComplete) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-12 text-center">
-        <div className="text-6xl mb-6">🎉</div>
-        <h2 className="text-3xl font-bold mb-4 text-foreground">
-          {currentPartner === 'partner1' ? 'Partner 1' : 'Partner 2'} is done!
-        </h2>
-        <p className="text-lg text-muted-foreground mb-8">
-          You've gone through all {names.length} names. Check your matches or switch to the other partner.
-        </p>
-        <div className="flex gap-4 justify-center">
-          <Button onClick={() => switchPartner()} variant="secondary">
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Switch Partner
-          </Button>
-          <Button onClick={handleRestart} variant="default">
-            <Heart className="w-4 h-4 mr-2" />
-            Start Over
-          </Button>
+      <div className="max-w-2xl mx-auto px-4 py-12">
+        <div className="text-center mb-12">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
+            <Sparkles className="w-10 h-10 text-primary" />
+          </div>
+          <h2 className="text-2xl font-bold mb-2 text-foreground">
+            All done, {currentPartner === 'partner1' ? 'Partner 1' : 'Partner 2'}!
+          </h2>
+          <p className="text-muted-foreground mb-8">
+            You've reviewed all {names.length} names. Want to discover more?
+          </p>
+          <div className="flex gap-3 justify-center mb-12">
+            <Button onClick={() => switchPartner()} variant="outline" size="lg">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Switch Partner
+            </Button>
+            <Button onClick={handleRestart} size="lg">
+              <Heart className="w-4 h-4 mr-2" />
+              Start Fresh
+            </Button>
+          </div>
         </div>
+
+        <GetMoreNames 
+          matches={matches} 
+          onAddNames={onAddNames}
+          existingNames={names}
+        />
       </div>
     );
   }
@@ -67,10 +93,12 @@ export const SwipeView = ({ names, nameSwipe, onMatch, selectedOrigins, onOrigin
   if (!currentName) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12 text-center">
-        <div className="text-6xl mb-6">💕</div>
-        <h2 className="text-3xl font-bold mb-4 text-foreground">No more names!</h2>
-        <p className="text-lg text-muted-foreground mb-8">
-          Add some custom names to continue swiping.
+        <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-muted flex items-center justify-center">
+          <Heart className="w-10 h-10 text-muted-foreground" />
+        </div>
+        <h2 className="text-2xl font-bold mb-2 text-foreground">No names to show</h2>
+        <p className="text-muted-foreground">
+          Try adjusting your filters or add custom names.
         </p>
       </div>
     );
@@ -79,7 +107,7 @@ export const SwipeView = ({ names, nameSwipe, onMatch, selectedOrigins, onOrigin
   const currentProgress = getPartnerProgress(currentPartner);
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
+    <div className="max-w-2xl mx-auto px-4 py-6">
       <PartnerSelector
         currentPartner={currentPartner}
         onPartnerChange={switchPartner}
@@ -87,38 +115,48 @@ export const SwipeView = ({ names, nameSwipe, onMatch, selectedOrigins, onOrigin
         partner2Progress={partner2Progress}
       />
 
-      <div className="flex items-center justify-between mb-4">
-        <CultureFilter 
-          selectedOrigins={selectedOrigins} 
-          onOriginsChange={onOriginsChange} 
+      {/* Filters Row */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+        <GenderFilter 
+          selectedGender={selectedGender}
+          onGenderChange={onGenderChange}
         />
-        <span className="text-sm text-muted-foreground">
-          {names.length} names
-        </span>
+        <div className="flex items-center gap-3">
+          <CultureFilter 
+            selectedOrigins={selectedOrigins} 
+            onOriginsChange={onOriginsChange} 
+          />
+          <span className="text-sm text-muted-foreground whitespace-nowrap">
+            {names.length} names
+          </span>
+        </div>
       </div>
 
+      {/* Progress */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-foreground">
-            Progress: {currentProgress.current} / {currentProgress.total}
+            {currentProgress.current} of {currentProgress.total}
           </span>
           <span className="text-sm text-muted-foreground">
-            {Math.round(currentProgress.percentage)}%
+            {Math.round(currentProgress.percentage)}% complete
           </span>
         </div>
-        <Progress value={currentProgress.percentage} className="h-2" />
+        <Progress value={currentProgress.percentage} className="h-1.5" />
       </div>
 
-      <div className="flex justify-center">
+      {/* Card */}
+      <div className="flex justify-center mb-6">
         <NameCard
           name={currentName}
           onSwipe={handleSwipe}
         />
       </div>
 
-      <div className="text-center mt-6 text-sm text-muted-foreground">
-        <p>Swipe right (❤️) to like, left (✖️) to pass, or tap ⭐ to superlike!</p>
-      </div>
+      {/* Instructions */}
+      <p className="text-center text-sm text-muted-foreground">
+        Swipe right to like • Swipe left to pass • Tap ⭐ to superlike
+      </p>
     </div>
   );
 };
