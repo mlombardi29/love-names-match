@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { BabyName, createNameDatabase } from '@/data/names';
+import { BabyName, CulturalOrigin, createNameDatabase } from '@/data/names';
 import { useNameSwipe } from '@/hooks/useNameSwipe';
 import { Navigation } from '@/components/Navigation';
 import { SwipeView } from '@/components/SwipeView';
@@ -12,10 +12,20 @@ const Index = () => {
   const [currentView, setCurrentView] = useState<'swipe' | 'matches' | 'add'>('swipe');
   const [customNames, setCustomNames] = useState<BabyName[]>([]);
   const [celebrationMatch, setCelebrationMatch] = useState<MatchedName | null>(null);
+  const [selectedOrigins, setSelectedOrigins] = useState<CulturalOrigin[]>([]);
 
   const allNames = useMemo(() => {
-    return [...createNameDatabase(), ...customNames];
-  }, [customNames]);
+    const baseNames = [...createNameDatabase(), ...customNames];
+    
+    // Filter by cultural origins if any are selected
+    if (selectedOrigins.length === 0) {
+      return baseNames;
+    }
+    
+    return baseNames.filter(name => 
+      name.origins?.some(origin => selectedOrigins.includes(origin))
+    );
+  }, [customNames, selectedOrigins]);
 
   const nameSwipe = useNameSwipe(allNames);
   const matches = nameSwipe.getMatches();
@@ -46,6 +56,8 @@ const Index = () => {
             names={allNames}
             nameSwipe={nameSwipe}
             onMatch={handleMatch}
+            selectedOrigins={selectedOrigins}
+            onOriginsChange={setSelectedOrigins}
           />
         )}
 

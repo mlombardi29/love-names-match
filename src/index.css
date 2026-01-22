@@ -42,8 +42,10 @@
     --shadow-card: 0 4px 20px -4px hsl(345 75% 65% / 0.15);
     --shadow-celebration: 0 8px 32px -8px hsl(345 75% 65% / 0.3);
     
-    --love: 345 75% 65%;
-    --love-foreground: 0 0% 100%;
+    --like: 345 75% 65%;
+    --like-foreground: 0 0% 100%;
+    --superlike: 45 100% 50%;
+    --superlike-foreground: 0 0% 0%;
     --pass: 215 25% 70%;
     --pass-foreground: 0 0% 100%;
     
@@ -98,8 +100,10 @@
     --input: 345 15% 20%;
     --ring: 345 75% 70%;
 
-    --love: 345 75% 70%;
-    --love-foreground: 345 15% 8%;
+    --like: 345 75% 70%;
+    --like-foreground: 345 15% 8%;
+    --superlike: 45 100% 55%;
+    --superlike-foreground: 0 0% 0%;
     --pass: 215 25% 40%;
     --pass-foreground: 32 30% 95%;
     --sidebar-background: 240 5.9% 10%;

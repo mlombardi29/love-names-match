@@ -1,7 +1,8 @@
-import { BabyName } from '@/data/names';
+import { BabyName, CulturalOrigin } from '@/data/names';
 import { useNameSwipe } from '@/hooks/useNameSwipe';
 import { NameCard } from './NameCard';
 import { PartnerSelector } from './PartnerSelector';
+import { CultureFilter } from './CultureFilter';
 import { Progress } from '@/components/ui/progress';
 import { RefreshCw, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,9 +11,11 @@ interface SwipeViewProps {
   names: BabyName[];
   nameSwipe: ReturnType<typeof useNameSwipe>;
   onMatch: (match: any) => void;
+  selectedOrigins: CulturalOrigin[];
+  onOriginsChange: (origins: CulturalOrigin[]) => void;
 }
 
-export const SwipeView = ({ names, nameSwipe, onMatch }: SwipeViewProps) => {
+export const SwipeView = ({ names, nameSwipe, onMatch, selectedOrigins, onOriginsChange }: SwipeViewProps) => {
   const {
     currentPartner,
     getCurrentName,
@@ -26,7 +29,7 @@ export const SwipeView = ({ names, nameSwipe, onMatch }: SwipeViewProps) => {
   const partner1Progress = getPartnerProgress('partner1');
   const partner2Progress = getPartnerProgress('partner2');
 
-  const handleSwipe = (decision: 'love' | 'pass') => {
+  const handleSwipe = (decision: 'like' | 'superlike' | 'pass') => {
     const match = swipeOnName(decision);
     if (match) {
       onMatch(match);
@@ -84,6 +87,16 @@ export const SwipeView = ({ names, nameSwipe, onMatch }: SwipeViewProps) => {
         partner2Progress={partner2Progress}
       />
 
+      <div className="flex items-center justify-between mb-4">
+        <CultureFilter 
+          selectedOrigins={selectedOrigins} 
+          onOriginsChange={onOriginsChange} 
+        />
+        <span className="text-sm text-muted-foreground">
+          {names.length} names
+        </span>
+      </div>
+
       <div className="mb-8">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-foreground">
@@ -103,8 +116,8 @@ export const SwipeView = ({ names, nameSwipe, onMatch }: SwipeViewProps) => {
         />
       </div>
 
-      <div className="text-center mt-8 text-sm text-muted-foreground">
-        <p>Swipe right (❤️) if you love the name, left (✖️) to pass</p>
+      <div className="text-center mt-6 text-sm text-muted-foreground">
+        <p>Swipe right (❤️) to like, left (✖️) to pass, or tap ⭐ to superlike!</p>
       </div>
     </div>
   );
