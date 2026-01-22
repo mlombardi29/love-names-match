@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { BabyName, CulturalOrigin, createNameDatabase } from '@/data/names';
+import { BabyName, CulturalOrigin, Gender, createNameDatabase } from '@/data/names';
 import { useNameSwipe } from '@/hooks/useNameSwipe';
 import { Navigation } from '@/components/Navigation';
 import { SwipeView } from '@/components/SwipeView';
@@ -11,21 +11,28 @@ import { MatchedName } from '@/hooks/useNameSwipe';
 const Index = () => {
   const [currentView, setCurrentView] = useState<'swipe' | 'matches' | 'add'>('swipe');
   const [customNames, setCustomNames] = useState<BabyName[]>([]);
+  const [discoveredNames, setDiscoveredNames] = useState<BabyName[]>([]);
   const [celebrationMatch, setCelebrationMatch] = useState<MatchedName | null>(null);
   const [selectedOrigins, setSelectedOrigins] = useState<CulturalOrigin[]>([]);
+  const [selectedGender, setSelectedGender] = useState<Gender | 'all'>('all');
 
   const allNames = useMemo(() => {
-    const baseNames = [...createNameDatabase(), ...customNames];
+    let baseNames = [...createNameDatabase(), ...customNames, ...discoveredNames];
     
-    // Filter by cultural origins if any are selected
-    if (selectedOrigins.length === 0) {
-      return baseNames;
+    // Filter by gender
+    if (selectedGender !== 'all') {
+      baseNames = baseNames.filter(name => name.gender === selectedGender);
     }
     
-    return baseNames.filter(name => 
-      name.origins?.some(origin => selectedOrigins.includes(origin))
-    );
-  }, [customNames, selectedOrigins]);
+    // Filter by cultural origins
+    if (selectedOrigins.length > 0) {
+      baseNames = baseNames.filter(name => 
+        name.origins?.some(origin => selectedOrigins.includes(origin))
+      );
+    }
+    
+    return baseNames;
+  }, [customNames, discoveredNames, selectedOrigins, selectedGender]);
 
   const nameSwipe = useNameSwipe(allNames);
   const matches = nameSwipe.getMatches();
@@ -38,19 +45,23 @@ const Index = () => {
     setCustomNames(prev => [...prev, name]);
   };
 
+  const handleAddDiscoveredNames = (names: BabyName[]) => {
+    setDiscoveredNames(prev => [...prev, ...names]);
+  };
+
   const closeCelebration = () => {
     setCelebrationMatch(null);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-soft">
+    <div className="min-h-screen bg-background">
       <Navigation
         currentView={currentView}
         onViewChange={setCurrentView}
         matchCount={matches.length}
       />
 
-      <main className="pb-8">
+      <main className="pb-12">
         {currentView === 'swipe' && (
           <SwipeView
             names={allNames}
@@ -58,17 +69,21 @@ const Index = () => {
             onMatch={handleMatch}
             selectedOrigins={selectedOrigins}
             onOriginsChange={setSelectedOrigins}
+            selectedGender={selectedGender}
+            onGenderChange={setSelectedGender}
+            onAddNames={handleAddDiscoveredNames}
+            matches={matches}
           />
         )}
 
         {currentView === 'matches' && (
-          <div className="max-w-6xl mx-auto px-4 py-8">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
             <MatchesList matches={matches} />
           </div>
         )}
 
         {currentView === 'add' && (
-          <div className="max-w-2xl mx-auto px-4 py-8">
+          <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
             <AddNameForm onAddName={handleAddName} existingNames={allNames} />
           </div>
         )}

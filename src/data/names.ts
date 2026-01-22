@@ -16,6 +16,8 @@ export type CulturalOrigin =
   | 'slavic'
   | 'latin';
 
+export type Gender = 'boy' | 'girl' | 'unisex';
+
 export const CULTURAL_ORIGINS: { value: CulturalOrigin; label: string }[] = [
   { value: 'english', label: 'English' },
   { value: 'spanish', label: 'Spanish/Hispanic' },
@@ -40,6 +42,11 @@ interface NameData {
   origins: CulturalOrigin[];
 }
 
+interface UnisexNameData {
+  name: string;
+  origins: CulturalOrigin[];
+}
+
 export const POPULAR_GIRL_NAMES: NameData[] = [
   { name: "Olivia", origins: ['latin', 'english'] },
   { name: "Emma", origins: ['german', 'english'] },
@@ -58,7 +65,6 @@ export const POPULAR_GIRL_NAMES: NameData[] = [
   { name: "Eleanor", origins: ['french', 'english'] },
   { name: "Ella", origins: ['german', 'english'] },
   { name: "Abigail", origins: ['hebrew', 'english'] },
-  { name: "Avery", origins: ['english', 'french'] },
   { name: "Scarlett", origins: ['english'] },
   { name: "Emily", origins: ['latin', 'english'] },
   { name: "Aria", origins: ['italian', 'hebrew'] },
@@ -76,8 +82,6 @@ export const POPULAR_GIRL_NAMES: NameData[] = [
   { name: "Grace", origins: ['latin', 'english'] },
   { name: "Violet", origins: ['latin', 'english'] },
   { name: "Aurora", origins: ['latin'] },
-  { name: "Riley", origins: ['irish', 'english'] },
-  { name: "Zoey", origins: ['greek'] },
   { name: "Willow", origins: ['english'] },
   { name: "Emilia", origins: ['latin', 'italian'] },
   { name: "Stella", origins: ['latin', 'italian'] },
@@ -119,7 +123,6 @@ export const POPULAR_GIRL_NAMES: NameData[] = [
   { name: "Hailey", origins: ['english'] },
   { name: "Sadie", origins: ['hebrew', 'english'] },
   { name: "Natalia", origins: ['latin', 'slavic', 'spanish'] },
-  { name: "Quinn", origins: ['irish'] },
   { name: "Caroline", origins: ['french', 'german'] },
   { name: "Allison", origins: ['german', 'english'] },
   { name: "Gabriella", origins: ['italian', 'hebrew'] },
@@ -136,9 +139,7 @@ export const POPULAR_GIRL_NAMES: NameData[] = [
   { name: "Adeline", origins: ['french', 'german'] },
   { name: "Madeline", origins: ['french', 'english'] },
   { name: "Piper", origins: ['english'] },
-  { name: "Rylee", origins: ['irish', 'english'] },
   { name: "Athena", origins: ['greek'] },
-  { name: "Peyton", origins: ['english'] },
   { name: "Everleigh", origins: ['english'] },
   { name: "Sakura", origins: ['japanese'] },
   { name: "Yuki", origins: ['japanese'] },
@@ -212,12 +213,10 @@ export const POPULAR_BOY_NAMES: NameData[] = [
   { name: "Christopher", origins: ['greek'] },
   { name: "Nathan", origins: ['hebrew'] },
   { name: "Isaiah", origins: ['hebrew'] },
-  { name: "Kai", origins: ['japanese', 'scandinavian'] },
   { name: "Joshua", origins: ['hebrew'] },
   { name: "Andrew", origins: ['greek'] },
   { name: "Angel", origins: ['greek', 'spanish'] },
   { name: "Adrian", origins: ['latin'] },
-  { name: "Cameron", origins: ['irish', 'english'] },
   { name: "Nolan", origins: ['irish'] },
   { name: "Waylon", origins: ['english'] },
   { name: "Jaxon", origins: ['english'] },
@@ -245,11 +244,8 @@ export const POPULAR_BOY_NAMES: NameData[] = [
   { name: "Beau", origins: ['french'] },
   { name: "Micah", origins: ['hebrew'] },
   { name: "Colton", origins: ['english'] },
-  { name: "Jordan", origins: ['hebrew'] },
   { name: "Jeremiah", origins: ['hebrew'] },
-  { name: "Parker", origins: ['english'] },
   { name: "Greyson", origins: ['english'] },
-  { name: "Rowan", origins: ['irish', 'english'] },
   { name: "Adam", origins: ['hebrew'] },
   { name: "Nicholas", origins: ['greek'] },
   { name: "Theo", origins: ['greek'] },
@@ -268,10 +264,53 @@ export const POPULAR_BOY_NAMES: NameData[] = [
   { name: "Hans", origins: ['german'] },
 ];
 
+export const UNISEX_NAMES: UnisexNameData[] = [
+  { name: "Sam", origins: ['hebrew', 'english'] },
+  { name: "Alex", origins: ['greek', 'english'] },
+  { name: "Jordan", origins: ['hebrew'] },
+  { name: "Taylor", origins: ['english', 'french'] },
+  { name: "Morgan", origins: ['irish', 'english'] },
+  { name: "Casey", origins: ['irish', 'english'] },
+  { name: "Riley", origins: ['irish', 'english'] },
+  { name: "Avery", origins: ['english', 'french'] },
+  { name: "Quinn", origins: ['irish'] },
+  { name: "Parker", origins: ['english'] },
+  { name: "Peyton", origins: ['english'] },
+  { name: "Cameron", origins: ['irish', 'english'] },
+  { name: "Rowan", origins: ['irish', 'english'] },
+  { name: "Skyler", origins: ['english'] },
+  { name: "Jamie", origins: ['hebrew', 'english'] },
+  { name: "Reese", origins: ['irish', 'english'] },
+  { name: "Finley", origins: ['irish', 'english'] },
+  { name: "Phoenix", origins: ['greek'] },
+  { name: "Sage", origins: ['latin', 'english'] },
+  { name: "River", origins: ['english'] },
+  { name: "Dakota", origins: ['english'] },
+  { name: "Hayden", origins: ['english'] },
+  { name: "Charlie", origins: ['german', 'english'] },
+  { name: "Emerson", origins: ['german', 'english'] },
+  { name: "Kai", origins: ['japanese', 'scandinavian'] },
+  { name: "Remi", origins: ['french'] },
+  { name: "Blake", origins: ['english'] },
+  { name: "Drew", origins: ['greek', 'english'] },
+  { name: "Eden", origins: ['hebrew'] },
+  { name: "Harley", origins: ['english'] },
+  { name: "Kendall", origins: ['english'] },
+  { name: "Lennon", origins: ['irish'] },
+  { name: "Marley", origins: ['english'] },
+  { name: "Oakley", origins: ['english'] },
+  { name: "Sawyer", origins: ['english'] },
+  { name: "Tatum", origins: ['english'] },
+  { name: "Zoey", origins: ['greek'] },
+  { name: "Ari", origins: ['hebrew', 'scandinavian'] },
+  { name: "Harper", origins: ['english'] },
+  { name: "Rory", origins: ['irish'] },
+];
+
 export interface BabyName {
   id: string;
   name: string;
-  gender: 'boy' | 'girl';
+  gender: Gender;
   origins: CulturalOrigin[];
   isCustom?: boolean;
 }
@@ -291,5 +330,12 @@ export const createNameDatabase = (): BabyName[] => {
     origins: data.origins,
   }));
 
-  return [...girlNames, ...boyNames];
+  const unisexNames = UNISEX_NAMES.map((data, index) => ({
+    id: `unisex-${index}`,
+    name: data.name,
+    gender: 'unisex' as const,
+    origins: data.origins,
+  }));
+
+  return [...girlNames, ...boyNames, ...unisexNames];
 };
