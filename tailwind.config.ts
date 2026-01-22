@@ -47,9 +47,13 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        love: {
-          DEFAULT: "hsl(var(--love))",
-          foreground: "hsl(var(--love-foreground))",
+        like: {
+          DEFAULT: "hsl(var(--like))",
+          foreground: "hsl(var(--like-foreground))",
+        },
+        superlike: {
+          DEFAULT: "hsl(var(--superlike))",
+          foreground: "hsl(var(--superlike-foreground))",
         },
         pass: {
           DEFAULT: "hsl(var(--pass))",

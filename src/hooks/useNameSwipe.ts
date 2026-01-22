@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { BabyName } from '@/data/names';
 
-export type SwipeDecision = 'love' | 'pass';
+export type SwipeDecision = 'like' | 'superlike' | 'pass';
 export type Partner = 'partner1' | 'partner2';
 
 export interface SwipeRecord {
@@ -14,6 +14,7 @@ export interface SwipeRecord {
 export interface MatchedName {
   name: BabyName;
   matchedAt: number;
+  isSuperMatch?: boolean;
 }
 
 export const useNameSwipe = (names: BabyName[]) => {
@@ -48,18 +49,20 @@ export const useNameSwipe = (names: BabyName[]) => {
       [currentPartner]: prev[currentPartner] + 1
     }));
 
-    // Check if this creates a match
+    // Check if this creates a match (both partners liked or superliked)
     const otherPartner = currentPartner === 'partner1' ? 'partner2' : 'partner1';
     const otherPartnerDecision = swipeHistory.find(
       record => record.nameId === currentName.id && 
       record.partner === otherPartner &&
-      record.decision === 'love'
+      (record.decision === 'like' || record.decision === 'superlike')
     );
 
-    if (decision === 'love' && otherPartnerDecision) {
+    if ((decision === 'like' || decision === 'superlike') && otherPartnerDecision) {
+      const isSuperMatch = decision === 'superlike' || otherPartnerDecision.decision === 'superlike';
       return {
         name: currentName,
-        matchedAt: Date.now()
+        matchedAt: Date.now(),
+        isSuperMatch
       } as MatchedName;
     }
 
@@ -67,23 +70,25 @@ export const useNameSwipe = (names: BabyName[]) => {
   }, [getCurrentName, currentPartner, swipeHistory]);
 
   const getMatches = useCallback((): MatchedName[] => {
-    const lovesByPartner1 = swipeHistory.filter(
-      record => record.partner === 'partner1' && record.decision === 'love'
+    const likesByPartner1 = swipeHistory.filter(
+      record => record.partner === 'partner1' && (record.decision === 'like' || record.decision === 'superlike')
     );
-    const lovesByPartner2 = swipeHistory.filter(
-      record => record.partner === 'partner2' && record.decision === 'love'
+    const likesByPartner2 = swipeHistory.filter(
+      record => record.partner === 'partner2' && (record.decision === 'like' || record.decision === 'superlike')
     );
 
     const matches: MatchedName[] = [];
     
-    lovesByPartner1.forEach(p1Love => {
-      const p2Love = lovesByPartner2.find(p2 => p2.nameId === p1Love.nameId);
-      if (p2Love) {
-        const name = names.find(n => n.id === p1Love.nameId);
+    likesByPartner1.forEach(p1Like => {
+      const p2Like = likesByPartner2.find(p2 => p2.nameId === p1Like.nameId);
+      if (p2Like) {
+        const name = names.find(n => n.id === p1Like.nameId);
         if (name) {
+          const isSuperMatch = p1Like.decision === 'superlike' || p2Like.decision === 'superlike';
           matches.push({
             name,
-            matchedAt: Math.max(p1Love.timestamp, p2Love.timestamp)
+            matchedAt: Math.max(p1Like.timestamp, p2Like.timestamp),
+            isSuperMatch
           });
         }
       }

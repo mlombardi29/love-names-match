@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { MatchedName } from '@/hooks/useNameSwipe';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Heart, Sparkles } from 'lucide-react';
+import { Heart, Sparkles, Star } from 'lucide-react';
 
 interface CelebrationModalProps {
   match: MatchedName | null;
@@ -41,8 +41,10 @@ export const CelebrationModal = ({ match, onClose }: CelebrationModalProps) => {
                   animationDuration: `${1.5 + Math.random()}s`
                 }}
               >
-                {Math.random() > 0.5 ? (
-                  <Heart className="w-4 h-4 text-love fill-current opacity-60" />
+                {match.isSuperMatch ? (
+                  <Star className="w-4 h-4 text-superlike fill-current opacity-80" />
+                ) : Math.random() > 0.5 ? (
+                  <Heart className="w-4 h-4 text-like fill-current opacity-60" />
                 ) : (
                   <Sparkles className="w-4 h-4 text-accent opacity-60" />
                 )}
@@ -51,14 +53,18 @@ export const CelebrationModal = ({ match, onClose }: CelebrationModalProps) => {
           </div>
 
           <div className="relative z-10">
-            <div className="text-6xl mb-4 animate-pulse">🎉</div>
+            <div className="text-6xl mb-4 animate-pulse">
+              {match.isSuperMatch ? '⭐' : '🎉'}
+            </div>
             
             <h2 className="text-3xl font-bold mb-2 text-white">
-              It's a Match!
+              {match.isSuperMatch ? 'Super Match!' : "It's a Match!"}
             </h2>
             
             <p className="text-lg text-white/90 mb-6">
-              You both love the name
+              {match.isSuperMatch 
+                ? 'Someone superliked this name!' 
+                : 'You both like the name'}
             </p>
             
             <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 mb-6">
@@ -84,9 +90,19 @@ export const CelebrationModal = ({ match, onClose }: CelebrationModalProps) => {
             </div>
 
             <div className="flex items-center justify-center gap-2 text-white/80">
-              <Heart className="w-5 h-5 fill-current text-love" />
-              <span className="font-medium">Added to your favorites!</span>
-              <Heart className="w-5 h-5 fill-current text-love" />
+              {match.isSuperMatch ? (
+                <>
+                  <Star className="w-5 h-5 fill-current text-superlike" />
+                  <span className="font-medium">Added to your favorites!</span>
+                  <Star className="w-5 h-5 fill-current text-superlike" />
+                </>
+              ) : (
+                <>
+                  <Heart className="w-5 h-5 fill-current text-like" />
+                  <span className="font-medium">Added to your favorites!</span>
+                  <Heart className="w-5 h-5 fill-current text-like" />
+                </>
+              )}
             </div>
           </div>
         </div>

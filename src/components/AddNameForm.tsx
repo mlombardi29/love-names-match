@@ -4,8 +4,9 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Plus, Sparkles } from 'lucide-react';
-import { BabyName } from '@/data/names';
+import { BabyName, CulturalOrigin, CULTURAL_ORIGINS } from '@/data/names';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 
 interface AddNameFormProps {
   onAddName: (name: BabyName) => void;
@@ -15,8 +16,17 @@ interface AddNameFormProps {
 export const AddNameForm = ({ onAddName, existingNames }: AddNameFormProps) => {
   const [newName, setNewName] = useState('');
   const [selectedGender, setSelectedGender] = useState<'boy' | 'girl'>('girl');
+  const [selectedOrigins, setSelectedOrigins] = useState<CulturalOrigin[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+
+  const toggleOrigin = (origin: CulturalOrigin) => {
+    if (selectedOrigins.includes(origin)) {
+      setSelectedOrigins(selectedOrigins.filter(o => o !== origin));
+    } else {
+      setSelectedOrigins([...selectedOrigins, origin]);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +60,7 @@ export const AddNameForm = ({ onAddName, existingNames }: AddNameFormProps) => {
       id: `custom-${Date.now()}`,
       name: newName.trim(),
       gender: selectedGender,
+      origins: selectedOrigins.length > 0 ? selectedOrigins : ['english'],
       isCustom: true,
     };
 
@@ -61,6 +72,7 @@ export const AddNameForm = ({ onAddName, existingNames }: AddNameFormProps) => {
     });
 
     setNewName('');
+    setSelectedOrigins([]);
     setIsSubmitting(false);
   };
 
@@ -120,6 +132,24 @@ export const AddNameForm = ({ onAddName, existingNames }: AddNameFormProps) => {
               <span className="text-lg">👦</span>
               Boy
             </button>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <Label className="text-sm font-medium text-foreground">
+            Cultural Origins <span className="text-muted-foreground">(optional)</span>
+          </Label>
+          <div className="flex flex-wrap gap-2">
+            {CULTURAL_ORIGINS.slice(0, 8).map(({ value, label }) => (
+              <Badge
+                key={value}
+                variant={selectedOrigins.includes(value) ? 'default' : 'outline'}
+                className="cursor-pointer hover:bg-primary/80 transition-colors"
+                onClick={() => toggleOrigin(value)}
+              >
+                {label}
+              </Badge>
+            ))}
           </div>
         </div>
 
