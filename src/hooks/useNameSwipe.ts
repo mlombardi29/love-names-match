@@ -1,5 +1,7 @@
 import { useState, useCallback } from 'react';
 import { BabyName } from '@/data/names';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 export type SwipeDecision = 'like' | 'superlike' | 'pass';
 export type Partner = 'partner1' | 'partner2';
@@ -19,119 +21,106 @@ export interface MatchedName {
   partner2Decision: SwipeDecision;
 }
 
-export const useNameSwipe = (names: BabyName[]) => {
-  const [currentPartner, setCurrentPartner] = useState<Partner>('partner1');
-  const [swipeHistory, setSwipeHistory] = useState<SwipeRecord[]>([]);
-  const [currentNameIndex, setCurrentNameIndex] = useState<{ [key in Partner]: number }>({
-    partner1: 0,
-    partner2: 0
-  });
+export const useNameSwipe = (names: BabyName[], swipedNameIds: Set<string>, allSwipes: SwipeRecord[]) => {
+  const { profile } = useAuth();
+  const currentPartner: Partner = profile?.partner_role as Partner || 'partner1';
+
+  const getUnswipedNames = useCallback(() => {
+    return names.filter(n => !swipedNameIds.has(n.id));
+  }, [names, swipedNameIds]);
 
   const getCurrentName = useCallback(() => {
-    const index = currentNameIndex[currentPartner];
-    return names[index] || null;
-  }, [names, currentNameIndex, currentPartner]);
+    const unswiped = getUnswipedNames();
+    return unswiped[0] || null;
+  }, [getUnswipedNames]);
 
-  const swipeOnName = useCallback((decision: SwipeDecision) => {
+  const swipeOnName = useCallback(async (decision: SwipeDecision): Promise<MatchedName | null> => {
     const currentName = getCurrentName();
-    if (!currentName) return null;
+    if (!currentName || !profile) return null;
 
-    const swipeRecord: SwipeRecord = {
-      nameId: currentName.id,
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    // Save swipe to database
+    await supabase.from('swipes').upsert({
+      user_id: user.id,
+      name_id: currentName.id,
       decision,
-      partner: currentPartner,
-      timestamp: Date.now()
-    };
+    }, { onConflict: 'user_id,name_id' });
 
-    setSwipeHistory(prev => [...prev, swipeRecord]);
+    // Check for match
+    if (decision === 'like' || decision === 'superlike') {
+      const otherPartnerSwipe = allSwipes.find(
+        s => s.nameId === currentName.id &&
+        s.partner !== currentPartner &&
+        (s.decision === 'like' || s.decision === 'superlike')
+      );
 
-    // Move to next name for current partner
-    setCurrentNameIndex(prev => ({
-      ...prev,
-      [currentPartner]: prev[currentPartner] + 1
-    }));
+      if (otherPartnerSwipe) {
+        const isSuperMatch = decision === 'superlike' || otherPartnerSwipe.decision === 'superlike';
+        const p1Decision = currentPartner === 'partner1' ? decision : otherPartnerSwipe.decision;
+        const p2Decision = currentPartner === 'partner2' ? decision : otherPartnerSwipe.decision;
 
-    // Check if this creates a match (both partners liked or superliked)
-    const otherPartner = currentPartner === 'partner1' ? 'partner2' : 'partner1';
-    const otherPartnerRecord = swipeHistory.find(
-      record => record.nameId === currentName.id && 
-      record.partner === otherPartner &&
-      (record.decision === 'like' || record.decision === 'superlike')
-    );
-
-    if ((decision === 'like' || decision === 'superlike') && otherPartnerRecord) {
-      const isSuperMatch = decision === 'superlike' || otherPartnerRecord.decision === 'superlike';
-      const partner1Decision = currentPartner === 'partner1' ? decision : otherPartnerRecord.decision;
-      const partner2Decision = currentPartner === 'partner2' ? decision : otherPartnerRecord.decision;
-      
-      return {
-        name: currentName,
-        matchedAt: Date.now(),
-        isSuperMatch,
-        partner1Decision,
-        partner2Decision
-      } as MatchedName;
+        return {
+          name: currentName,
+          matchedAt: Date.now(),
+          isSuperMatch,
+          partner1Decision: p1Decision,
+          partner2Decision: p2Decision,
+        };
+      }
     }
 
     return null;
-  }, [getCurrentName, currentPartner, swipeHistory]);
+  }, [getCurrentName, currentPartner, allSwipes, profile]);
 
   const getMatches = useCallback((): MatchedName[] => {
-    const likesByPartner1 = swipeHistory.filter(
-      record => record.partner === 'partner1' && (record.decision === 'like' || record.decision === 'superlike')
+    const p1Likes = allSwipes.filter(
+      s => s.partner === 'partner1' && (s.decision === 'like' || s.decision === 'superlike')
     );
-    const likesByPartner2 = swipeHistory.filter(
-      record => record.partner === 'partner2' && (record.decision === 'like' || record.decision === 'superlike')
+    const p2Likes = allSwipes.filter(
+      s => s.partner === 'partner2' && (s.decision === 'like' || s.decision === 'superlike')
     );
 
     const matches: MatchedName[] = [];
-    
-    likesByPartner1.forEach(p1Like => {
-      const p2Like = likesByPartner2.find(p2 => p2.nameId === p1Like.nameId);
-      if (p2Like) {
-        const name = names.find(n => n.id === p1Like.nameId);
+
+    p1Likes.forEach(p1 => {
+      const p2 = p2Likes.find(p => p.nameId === p1.nameId);
+      if (p2) {
+        const name = names.find(n => n.id === p1.nameId);
         if (name) {
-          const isSuperMatch = p1Like.decision === 'superlike' || p2Like.decision === 'superlike';
           matches.push({
             name,
-            matchedAt: Math.max(p1Like.timestamp, p2Like.timestamp),
-            isSuperMatch,
-            partner1Decision: p1Like.decision,
-            partner2Decision: p2Like.decision
+            matchedAt: Math.max(p1.timestamp, p2.timestamp),
+            isSuperMatch: p1.decision === 'superlike' || p2.decision === 'superlike',
+            partner1Decision: p1.decision,
+            partner2Decision: p2.decision,
           });
         }
       }
     });
 
     return matches.sort((a, b) => b.matchedAt - a.matchedAt);
-  }, [swipeHistory, names]);
-
-  const switchPartner = useCallback(() => {
-    setCurrentPartner(prev => prev === 'partner1' ? 'partner2' : 'partner1');
-  }, []);
+  }, [allSwipes, names]);
 
   const getPartnerProgress = useCallback((partner: Partner) => {
+    const partnerSwipes = allSwipes.filter(s => s.partner === partner);
     return {
-      current: currentNameIndex[partner],
+      current: partnerSwipes.length,
       total: names.length,
-      percentage: names.length > 0 ? (currentNameIndex[partner] / names.length) * 100 : 0
+      percentage: names.length > 0 ? (partnerSwipes.length / names.length) * 100 : 0,
     };
-  }, [currentNameIndex, names.length]);
+  }, [allSwipes, names.length]);
 
-  const addMoreNames = useCallback((newNames: BabyName[]) => {
-    // This will be handled at the parent level
-    return newNames;
-  }, []);
+  const unswiped = getUnswipedNames();
 
   return {
     currentPartner,
     getCurrentName,
     swipeOnName,
     getMatches,
-    switchPartner,
     getPartnerProgress,
-    swipeHistory,
-    isComplete: currentNameIndex[currentPartner] >= names.length,
-    addMoreNames
+    swipeHistory: allSwipes,
+    isComplete: unswiped.length === 0 && names.length > 0,
   };
 };
