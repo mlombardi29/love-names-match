@@ -14,7 +14,81 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      custom_names: {
+        Row: {
+          added_by: string
+          created_at: string
+          gender: string
+          id: string
+          name: string
+          origins: Json
+        }
+        Insert: {
+          added_by: string
+          created_at?: string
+          gender: string
+          id?: string
+          name: string
+          origins?: Json
+        }
+        Update: {
+          added_by?: string
+          created_at?: string
+          gender?: string
+          id?: string
+          name?: string
+          origins?: Json
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string
+          id: string
+          partner_role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          id?: string
+          partner_role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          id?: string
+          partner_role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      swipes: {
+        Row: {
+          created_at: string
+          decision: string
+          id: string
+          name_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          decision: string
+          id?: string
+          name_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          decision?: string
+          id?: string
+          name_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
