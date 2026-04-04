@@ -6,7 +6,7 @@ import { GenderFilter } from './GenderFilter';
 import { GetMoreNames } from './GetMoreNames';
 import { Progress } from '@/components/ui/progress';
 import { Heart, Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+
 
 interface SwipeViewProps {
   names: BabyName[];
