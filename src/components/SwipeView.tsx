@@ -1,60 +1,47 @@
 import { BabyName, CulturalOrigin, Gender } from '@/data/names';
 import { useNameSwipe } from '@/hooks/useNameSwipe';
 import { NameCard } from './NameCard';
-import { PartnerSelector } from './PartnerSelector';
 import { CultureFilter } from './CultureFilter';
 import { GenderFilter } from './GenderFilter';
 import { GetMoreNames } from './GetMoreNames';
 import { Progress } from '@/components/ui/progress';
-import { RefreshCw, Heart, Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Heart, Sparkles } from 'lucide-react';
+
 
 interface SwipeViewProps {
   names: BabyName[];
   nameSwipe: ReturnType<typeof useNameSwipe>;
-  onMatch: (match: any) => void;
+  onSwipe: (decision: 'like' | 'superlike' | 'pass') => void;
   selectedOrigins: CulturalOrigin[];
   onOriginsChange: (origins: CulturalOrigin[]) => void;
   selectedGender: Gender | 'all';
   onGenderChange: (gender: Gender | 'all') => void;
   onAddNames: (names: BabyName[]) => void;
   matches: any[];
+  partnerName?: string;
+  partnerPartnerName?: string;
 }
 
 export const SwipeView = ({ 
   names, 
   nameSwipe, 
-  onMatch, 
+  onSwipe,
   selectedOrigins, 
   onOriginsChange,
   selectedGender,
   onGenderChange,
   onAddNames,
-  matches
+  matches,
+  partnerName,
 }: SwipeViewProps) => {
   const {
     currentPartner,
     getCurrentName,
-    swipeOnName,
-    switchPartner,
     getPartnerProgress,
     isComplete
   } = nameSwipe;
 
   const currentName = getCurrentName();
-  const partner1Progress = getPartnerProgress('partner1');
-  const partner2Progress = getPartnerProgress('partner2');
-
-  const handleSwipe = (decision: 'like' | 'superlike' | 'pass') => {
-    const match = swipeOnName(decision);
-    if (match) {
-      onMatch(match);
-    }
-  };
-
-  const handleRestart = () => {
-    window.location.reload();
-  };
 
   if (isComplete) {
     return (
@@ -64,21 +51,11 @@ export const SwipeView = ({
             <Sparkles className="w-10 h-10 text-primary" />
           </div>
           <h2 className="text-2xl font-bold mb-2 text-foreground">
-            All done, {currentPartner === 'partner1' ? 'Partner 1' : 'Partner 2'}!
+            All done{partnerName ? `, ${partnerName}` : ''}!
           </h2>
           <p className="text-muted-foreground mb-8">
             You've reviewed all {names.length} names. Want to discover more?
           </p>
-          <div className="flex gap-3 justify-center mb-12">
-            <Button onClick={() => switchPartner()} variant="outline" size="lg">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Switch Partner
-            </Button>
-            <Button onClick={handleRestart} size="lg">
-              <Heart className="w-4 h-4 mr-2" />
-              Start Fresh
-            </Button>
-          </div>
         </div>
 
         <GetMoreNames 
@@ -108,12 +85,14 @@ export const SwipeView = ({
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6">
-      <PartnerSelector
-        currentPartner={currentPartner}
-        onPartnerChange={switchPartner}
-        partner1Progress={partner1Progress}
-        partner2Progress={partner2Progress}
-      />
+      {/* Current user indicator */}
+      {partnerName && (
+        <div className="text-center mb-6">
+          <span className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-sm font-medium text-primary">
+            Swiping as {partnerName}
+          </span>
+        </div>
+      )}
 
       {/* Filters Row */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
@@ -149,7 +128,7 @@ export const SwipeView = ({
       <div className="flex justify-center mb-6">
         <NameCard
           name={currentName}
-          onSwipe={handleSwipe}
+          onSwipe={onSwipe}
         />
       </div>
 

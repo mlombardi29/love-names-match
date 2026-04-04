@@ -1,12 +1,15 @@
-import { Heart, Plus, Sparkles, Search } from 'lucide-react';
+import { Heart, Plus, Sparkles, Search, LogOut } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface NavigationProps {
   currentView: 'swipe' | 'matches' | 'add';
   onViewChange: (view: 'swipe' | 'matches' | 'add') => void;
   matchCount: number;
+  displayName?: string;
+  onSignOut?: () => void;
 }
 
-export const Navigation = ({ currentView, onViewChange, matchCount }: NavigationProps) => {
+export const Navigation = ({ currentView, onViewChange, matchCount, displayName, onSignOut }: NavigationProps) => {
   const navItems = [
     { id: 'swipe' as const, label: 'Discover', icon: Search },
     { id: 'matches' as const, label: 'Matches', icon: Heart, badge: matchCount },
@@ -52,6 +55,21 @@ export const Navigation = ({ currentView, onViewChange, matchCount }: Navigation
                 )}
               </button>
             ))}
+          </div>
+
+          {/* User info + Sign out */}
+          <div className="flex items-center gap-3">
+            {displayName && (
+              <span className="text-sm font-medium text-foreground hidden sm:inline">
+                Hi, {displayName}
+              </span>
+            )}
+            {onSignOut && (
+              <Button variant="ghost" size="sm" onClick={onSignOut} className="gap-1.5">
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Sign Out</span>
+              </Button>
+            )}
           </div>
         </div>
       </div>
