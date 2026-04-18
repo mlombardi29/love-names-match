@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { BabyName, CulturalOrigin, Gender, createNameDatabase } from '@/data/names';
-import { useNameSwipe, SwipeRecord, Partner } from '@/hooks/useNameSwipe';
+import { useNameSwipe, SwipeRecord } from '@/hooks/useNameSwipe';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Navigation } from '@/components/Navigation';
@@ -9,9 +9,11 @@ import { MatchesList } from '@/components/MatchesList';
 import { AddNameForm } from '@/components/AddNameForm';
 import { CelebrationModal } from '@/components/CelebrationModal';
 import { MatchedName } from '@/hooks/useNameSwipe';
+import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
-  const { user, profile, partnerProfile, signOut } = useAuth();
+  const { user, profile, partnerProfile, couple, signOut } = useAuth();
+  const navigate = useNavigate();
   const [currentView, setCurrentView] = useState<'swipe' | 'matches' | 'add'>('swipe');
   const [customNames, setCustomNames] = useState<BabyName[]>([]);
   const [discoveredNames, setDiscoveredNames] = useState<BabyName[]>([]);
@@ -22,10 +24,14 @@ const Index = () => {
   const [swipedNameIds, setSwipedNameIds] = useState<Set<string>>(new Set());
   const [dataLoaded, setDataLoaded] = useState(false);
 
-  // Load custom names from DB
+  const partnerUserId = partnerProfile?.user_id ?? null;
+
+  // Load custom names + swipes scoped to current space
   useEffect(() => {
     const loadData = async () => {
-      // Load custom names
+      if (!user) return;
+      setDataLoaded(false);
+
       const { data: dbNames } = await supabase.from('custom_names').select('*');
       if (dbNames) {
         const mapped: BabyName[] = dbNames.map(n => ({
@@ -38,35 +44,26 @@ const Index = () => {
         setCustomNames(mapped);
       }
 
-      // Load all swipes (both partners)
-      const { data: dbSwipes } = await supabase.from('swipes').select('*, profiles:user_id(partner_role)');
-      
-      // Need to get profiles to map user_id -> partner_role
-      const { data: profiles } = await supabase.from('profiles').select('user_id, partner_role');
-      const roleMap = new Map<string, Partner>();
-      profiles?.forEach(p => roleMap.set(p.user_id, p.partner_role as Partner));
-
+      const { data: dbSwipes } = await supabase.from('swipes').select('*');
       if (dbSwipes) {
         const records: SwipeRecord[] = dbSwipes.map(s => ({
           nameId: s.name_id,
           decision: s.decision as 'like' | 'superlike' | 'pass',
-          partner: roleMap.get(s.user_id) || 'partner1',
+          userId: s.user_id,
           timestamp: new Date(s.created_at).getTime(),
         }));
         setAllSwipes(records);
 
-        // Set swiped IDs for current user
-        if (user) {
-          const mySwipes = dbSwipes.filter(s => s.user_id === user.id);
-          setSwipedNameIds(new Set(mySwipes.map(s => s.name_id)));
-        }
+        const mySwipes = dbSwipes.filter(s => s.user_id === user.id);
+        setSwipedNameIds(new Set(mySwipes.map(s => s.name_id)));
       }
 
       setDataLoaded(true);
     };
 
     if (user) loadData();
-  }, [user]);
+    // Reload when couple changes (e.g. after upgrade or join)
+  }, [user, couple?.id]);
 
   const allNames = useMemo(() => {
     let baseNames = [...createNameDatabase(), ...customNames, ...discoveredNames];
@@ -81,20 +78,20 @@ const Index = () => {
     return baseNames;
   }, [customNames, discoveredNames, selectedOrigins, selectedGender]);
 
-  const nameSwipe = useNameSwipe(allNames, swipedNameIds, allSwipes);
+  const nameSwipe = useNameSwipe(allNames, swipedNameIds, allSwipes, partnerUserId);
   const matches = nameSwipe.getMatches();
 
   const handleSwipe = useCallback(async (decision: 'like' | 'superlike' | 'pass') => {
-    const match = await nameSwipe.swipeOnName(decision);
+    if (!user) return;
     const currentName = nameSwipe.getCurrentName();
-    
+    const match = await nameSwipe.swipeOnName(decision);
+
     if (currentName) {
-      // Update local state immediately
       setSwipedNameIds(prev => new Set([...prev, currentName.id]));
       setAllSwipes(prev => [...prev, {
         nameId: currentName.id,
         decision,
-        partner: nameSwipe.currentPartner,
+        userId: user.id,
         timestamp: Date.now(),
       }]);
     }
@@ -102,17 +99,32 @@ const Index = () => {
     if (match) {
       setCelebrationMatch(match);
     }
-  }, [nameSwipe]);
+  }, [nameSwipe, user]);
 
   const handleAddName = async (name: BabyName) => {
     if (!user) return;
-    
-    const { data, error } = await supabase.from('custom_names').insert({
+
+    const payload: {
+      name: string;
+      gender: Gender;
+      origins: CulturalOrigin[];
+      added_by: string;
+      couple_id?: string;
+      solo_owner_id?: string;
+    } = {
       name: name.name,
       gender: name.gender,
-      origins: name.origins as any,
+      origins: name.origins ?? [],
       added_by: user.id,
-    }).select().single();
+    };
+
+    if (couple) {
+      payload.couple_id = couple.id;
+    } else {
+      payload.solo_owner_id = user.id;
+    }
+
+    const { data, error } = await supabase.from('custom_names').insert(payload).select().single();
 
     if (data && !error) {
       const newName: BabyName = {
@@ -140,6 +152,9 @@ const Index = () => {
     );
   }
 
+  const isInCouple = !!couple;
+  // If in couple but matches view requested without partner yet, still show matches list (will be empty)
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation
@@ -147,7 +162,10 @@ const Index = () => {
         onViewChange={setCurrentView}
         matchCount={matches.length}
         displayName={profile?.display_name}
+        partnerName={partnerProfile?.display_name}
+        isInCouple={isInCouple}
         onSignOut={signOut}
+        onInvitePartner={() => navigate('/onboarding')}
       />
 
       <main className="pb-12">
@@ -169,11 +187,26 @@ const Index = () => {
 
         {currentView === 'matches' && (
           <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-            <MatchesList 
-              matches={matches}
-              partner1Name={profile?.partner_role === 'partner1' ? profile.display_name : partnerProfile?.display_name}
-              partner2Name={profile?.partner_role === 'partner2' ? profile.display_name : partnerProfile?.display_name}
-            />
+            {!isInCouple ? (
+              <div className="text-center py-16">
+                <h3 className="text-2xl font-semibold mb-2 text-foreground">Solo mode — no matches</h3>
+                <p className="text-muted-foreground max-w-sm mx-auto">
+                  Matches happen when you and a partner both like the same name. Invite a partner to get started.
+                </p>
+                <button
+                  onClick={() => navigate('/onboarding')}
+                  className="mt-6 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-semibold"
+                >
+                  Invite a partner
+                </button>
+              </div>
+            ) : (
+              <MatchesList
+                matches={matches}
+                partner1Name={profile?.display_name}
+                partner2Name={partnerProfile?.display_name}
+              />
+            )}
           </div>
         )}
 
