@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth, AppMode } from '@/hooks/useAuth';
 import { Card } from '@/components/ui/card';
@@ -15,11 +15,25 @@ const Auth = () => {
   const [displayName, setDisplayName] = useState('');
   const [mode, setMode] = useState<AppMode>('couple');
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, user, profile, couple, loading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const inviteCode = searchParams.get('invite');
+
+  // Redirect already-authenticated users away from /auth
+  useEffect(() => {
+    if (loading || !user) return;
+    if (inviteCode) {
+      navigate(`/join/${inviteCode}`, { replace: true });
+      return;
+    }
+    if (profile?.mode === 'couple' && !couple) {
+      navigate('/onboarding', { replace: true });
+    } else {
+      navigate('/', { replace: true });
+    }
+  }, [user, profile, couple, loading, inviteCode, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
