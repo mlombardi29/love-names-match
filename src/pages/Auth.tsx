@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth, AppMode } from '@/hooks/useAuth';
 import { Card } from '@/components/ui/card';
