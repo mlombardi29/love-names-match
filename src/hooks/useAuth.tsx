@@ -146,6 +146,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           mode,
         });
       if (profileError) return { error: profileError as unknown as Error };
+
+      // Reload user data now that the profile exists (avoids race with onAuthStateChange)
+      await loadUserData(data.user.id);
     }
 
     return { error: null };
