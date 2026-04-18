@@ -14,87 +14,172 @@ export type Database = {
   }
   public: {
     Tables: {
+      couple_members: {
+        Row: {
+          couple_id: string
+          id: string
+          joined_at: string
+          user_id: string
+        }
+        Insert: {
+          couple_id: string
+          id?: string
+          joined_at?: string
+          user_id: string
+        }
+        Update: {
+          couple_id?: string
+          id?: string
+          joined_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "couple_members_couple_id_fkey"
+            columns: ["couple_id"]
+            isOneToOne: false
+            referencedRelation: "couples"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      couples: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          invite_code: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          invite_code: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          invite_code?: string
+        }
+        Relationships: []
+      }
       custom_names: {
         Row: {
           added_by: string
+          couple_id: string | null
           created_at: string
           gender: string
           id: string
           name: string
           origins: Json
+          solo_owner_id: string | null
         }
         Insert: {
           added_by: string
+          couple_id?: string | null
           created_at?: string
           gender: string
           id?: string
           name: string
           origins?: Json
+          solo_owner_id?: string | null
         }
         Update: {
           added_by?: string
+          couple_id?: string | null
           created_at?: string
           gender?: string
           id?: string
           name?: string
           origins?: Json
+          solo_owner_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "custom_names_couple_id_fkey"
+            columns: ["couple_id"]
+            isOneToOne: false
+            referencedRelation: "couples"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
           created_at: string
           display_name: string
           id: string
-          partner_role: string
+          mode: string
           user_id: string
         }
         Insert: {
           created_at?: string
           display_name: string
           id?: string
-          partner_role: string
+          mode?: string
           user_id: string
         }
         Update: {
           created_at?: string
           display_name?: string
           id?: string
-          partner_role?: string
+          mode?: string
           user_id?: string
         }
         Relationships: []
       }
       swipes: {
         Row: {
+          couple_id: string | null
           created_at: string
           decision: string
           id: string
           name_id: string
+          solo_owner_id: string | null
           user_id: string
         }
         Insert: {
+          couple_id?: string | null
           created_at?: string
           decision: string
           id?: string
           name_id: string
+          solo_owner_id?: string | null
           user_id: string
         }
         Update: {
+          couple_id?: string | null
           created_at?: string
           decision?: string
           id?: string
           name_id?: string
+          solo_owner_id?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "swipes_couple_id_fkey"
+            columns: ["couple_id"]
+            isOneToOne: false
+            referencedRelation: "couples"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      couple_member_count: { Args: { _couple_id: string }; Returns: number }
+      generate_invite_code: { Args: never; Returns: string }
+      get_my_couple_id: { Args: never; Returns: string }
+      is_member_of_couple: { Args: { _couple_id: string }; Returns: boolean }
+      upgrade_solo_data_to_couple: {
+        Args: { _couple_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
