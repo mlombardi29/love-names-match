@@ -173,36 +173,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const createCouple = async (): Promise<{ couple: Couple | null; error: Error | null }> => {
     if (!user) return { couple: null, error: new Error('Not authenticated') };
 
-    // Try a few times in case of code collision
-    let lastError: Error | null = null;
-    for (let attempt = 0; attempt < 5; attempt++) {
-      const code = generateInviteCode();
-      const { data: newCouple, error } = await supabase
-        .from('couples')
-        .insert({ invite_code: code, created_by: user.id })
-        .select()
-        .single();
+    const { data: newCouple, error } = await supabase
+      .rpc('create_couple_with_code')
+      .single();
 
-      if (newCouple) {
-        // Add self as member
-        const { error: memberError } = await supabase
-          .from('couple_members')
-          .insert({ couple_id: newCouple.id, user_id: user.id });
-
-        if (memberError) {
-          lastError = memberError as unknown as Error;
-          continue;
-        }
-
-        // If user has solo data, upgrade it
-        await supabase.rpc('upgrade_solo_data_to_couple', { _couple_id: newCouple.id });
-
-        await loadUserData(user.id);
-        return { couple: newCouple as Couple, error: null };
-      }
-      lastError = error as unknown as Error;
+    if (error || !newCouple) {
+      return { couple: null, error: (error as unknown as Error) ?? new Error('Failed to create couple') };
     }
-    return { couple: null, error: lastError ?? new Error('Failed to create couple') };
+
+    // If user has solo data, upgrade it
+    await supabase.rpc('upgrade_solo_data_to_couple', { _couple_id: (newCouple as Couple).id });
+
+    await loadUserData(user.id);
+    return { couple: newCouple as Couple, error: null };
   };
 
   const joinCoupleByCode = async (code: string): Promise<{ error: Error | null }> => {
