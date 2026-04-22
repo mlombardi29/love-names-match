@@ -173,6 +173,21 @@ export type Database = {
     }
     Functions: {
       couple_member_count: { Args: { _couple_id: string }; Returns: number }
+      create_couple_with_code: {
+        Args: never
+        Returns: {
+          created_at: string
+          created_by: string
+          id: string
+          invite_code: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "couples"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       generate_invite_code: { Args: never; Returns: string }
       get_my_couple_id: { Args: never; Returns: string }
       is_member_of_couple: { Args: { _couple_id: string }; Returns: boolean }
