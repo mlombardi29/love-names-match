@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Sparkles, Send, KeyRound, Copy, Check, ArrowRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import type { Couple } from '@/hooks/useAuth';
 
 const Onboarding = () => {
   const { user, profile, couple, createCouple, joinCoupleByCode, loading } = useAuth();
@@ -16,13 +17,14 @@ const Onboarding = () => {
   const [code, setCode] = useState('');
   const [isWorking, setIsWorking] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [inviteCouple, setInviteCouple] = useState<Couple | null>(null);
 
-  // If already in a couple, go to app
+  // If already in a couple, go to app (skip when showing the invite screen)
   useEffect(() => {
-    if (!loading && couple) {
+    if (!loading && couple && mode !== 'invite') {
       navigate('/');
     }
-  }, [couple, loading, navigate]);
+  }, [couple, loading, navigate, mode]);
 
   // If user is solo (no couple intent), go to app
   useEffect(() => {
@@ -46,6 +48,7 @@ const Onboarding = () => {
     if (error || !newCouple) {
       toast({ title: 'Failed to create invite', description: error?.message, variant: 'destructive' });
     } else {
+      setInviteCouple(newCouple);
       setMode('invite');
     }
   };
@@ -63,7 +66,8 @@ const Onboarding = () => {
     }
   };
 
-  const inviteLink = couple ? `${window.location.origin}/join/${couple.invite_code}` : '';
+  const activeInviteCouple = inviteCouple ?? couple;
+  const inviteLink = activeInviteCouple ? `${window.location.origin}/join/${activeInviteCouple.invite_code}` : '';
 
   const copyLink = async () => {
     await navigator.clipboard.writeText(inviteLink);
@@ -124,7 +128,7 @@ const Onboarding = () => {
             </div>
           )}
 
-          {mode === 'invite' && couple && (
+          {mode === 'invite' && activeInviteCouple && (
             <div className="space-y-5">
               <div>
                 <h3 className="text-lg font-semibold text-foreground">Share with your partner</h3>
@@ -136,7 +140,7 @@ const Onboarding = () => {
               <div className="space-y-2">
                 <Label>Invite Code</Label>
                 <div className="text-3xl font-bold text-center tracking-[0.3em] py-4 bg-muted rounded-xl text-foreground">
-                  {couple.invite_code}
+                  {activeInviteCouple.invite_code}
                 </div>
               </div>
 
