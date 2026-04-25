@@ -29,7 +29,7 @@ const Join = () => {
         navigate('/');
       } else {
         setStatus('error');
-        setErrorMessage("You're already in a different partner space. Sign out first to join a new one.");
+        setErrorMessage("You're already coupled up with someone else! Each account can only be in one partner space at a time. Sign out first if you want to start fresh.");
       }
       return;
     }
@@ -40,7 +40,15 @@ const Join = () => {
       joinCoupleByCode(code).then(({ error }) => {
         if (error) {
           setStatus('error');
-          setErrorMessage(error.message);
+          const m = error.message.toLowerCase();
+          const friendly = m.includes('already full')
+            ? "Oops — that partner space is already full! Each space is just for two 💑"
+            : m.includes('already a member')
+            ? "You're already in this partner space — no need to join again!"
+            : m.includes('invalid') || m.includes('not found')
+            ? "That invite code doesn't exist. Double-check the link and try again!"
+            : "Something went sideways joining that space. Give it another go!";
+          setErrorMessage(friendly);
         } else {
           setStatus('done');
           toast({ title: 'Connected!', description: 'You and your partner are now linked.' });

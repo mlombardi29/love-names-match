@@ -8,8 +8,24 @@ import { Label } from '@/components/ui/label';
 import { Sparkles, User, Users, LogIn, UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
+const friendlyError = (message: string): string => {
+  const m = message.toLowerCase();
+  if (m.includes('rate limit') || m.includes('too many')) return "Whoa, too many attempts! Give it an hour and try again — we promise we'll still be here 😅";
+  if (m.includes('invalid login') || m.includes('invalid credentials') || m.includes('wrong password')) return "That email/password combo isn't ringing any bells. Double-check and try again!";
+  if (m.includes('already registered') || m.includes('already exists')) return "Looks like that email's taken. Try signing in instead!";
+  if (m.includes('email not confirmed')) return "Almost there! Check your inbox and confirm your email first.";
+  if (m.includes('network') || m.includes('fetch')) return "Couldn't reach the server — check your connection and try again.";
+  if (m.includes('password') && m.includes('short')) return "That password's a little shy. Make it at least 6 characters!";
+  if (m.includes('couple space is already full')) return "Oops — that partner space is already full! Each space is just for two 💑";
+  if (m.includes('already a member')) return "You're already connected to this partner space!";
+  if (m.includes('invalid invite') || m.includes('invalid code')) return "That invite code doesn't exist. Double-check the link and try again!";
+  return "Something went sideways on our end. Give it another go!";
+};
+
 const Auth = () => {
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [searchParams] = useSearchParams();
+  const inviteCode = searchParams.get('invite');
+  const [isSignUp, setIsSignUp] = useState(() => !!inviteCode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -18,8 +34,6 @@ const Auth = () => {
   const { signIn, signUp, user, profile, couple, loading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const inviteCode = searchParams.get('invite');
 
   // Redirect already-authenticated users away from /auth
   useEffect(() => {
@@ -44,9 +58,9 @@ const Auth = () => {
       const finalMode: AppMode = inviteCode ? 'couple' : mode;
       const { error } = await signUp(email, password, displayName, finalMode);
       if (error) {
-        toast({ title: 'Sign up failed', description: error.message, variant: 'destructive' });
+        toast({ title: 'Sign up failed 😬', description: friendlyError(error.message), variant: 'destructive' });
       } else {
-        toast({ title: 'Welcome!', description: 'Account created. Check your email to verify.' });
+        toast({ title: 'Welcome! 🎉', description: 'Account created. Check your inbox to verify your email.' });
         if (inviteCode) {
           navigate(`/join/${inviteCode}`);
         } else if (finalMode === 'couple') {
@@ -58,7 +72,7 @@ const Auth = () => {
     } else {
       const { error } = await signIn(email, password);
       if (error) {
-        toast({ title: 'Sign in failed', description: error.message, variant: 'destructive' });
+        toast({ title: 'Sign in failed 😬', description: friendlyError(error.message), variant: 'destructive' });
       } else if (inviteCode) {
         navigate(`/join/${inviteCode}`);
       }
@@ -104,6 +118,14 @@ const Auth = () => {
               Sign Up
             </button>
           </div>
+
+          {!isSignUp && inviteCode && (
+            <div className="mb-4 p-4 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-800 space-y-1">
+              <p className="font-semibold">Heads up! 👀</p>
+              <p>You're about to connect an <span className="font-medium">existing account</span> with the person who invited you. Both of you will share the same name pool going forward.</p>
+              <p className="mt-1">One catch: your account must be a solo account — you can't merge two already-coupled spaces. If you're already someone else's partner, this will fail.</p>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {isSignUp && (
