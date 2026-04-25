@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 
 const friendlyError = (message: string): string => {
   const m = message.toLowerCase();
-  if (m.includes('rate limit') || m.includes('too many')) return "Whoa, too many attempts! Give it an hour and try again — we promise we'll still be here 😅";
+  if (m.includes('rate limit') || m.includes('too many')) return "Our email sender hit its hourly limit — totally a us problem, not you! Wait ~1 hour and try again, or ask the app owner to set up a custom email provider 😅";
   if (m.includes('invalid login') || m.includes('invalid credentials') || m.includes('wrong password')) return "That email/password combo isn't ringing any bells. Double-check and try again!";
   if (m.includes('already registered') || m.includes('already exists')) return "Looks like that email's taken. Try signing in instead!";
   if (m.includes('email not confirmed')) return "Almost there! Check your inbox and confirm your email first.";

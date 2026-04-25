@@ -23,6 +23,7 @@ const Index = () => {
   const [allSwipes, setAllSwipes] = useState<SwipeRecord[]>([]);
   const [swipedNameIds, setSwipedNameIds] = useState<Set<string>>(new Set());
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [partnerAddedNameIds, setPartnerAddedNameIds] = useState<Set<string>>(new Set());
 
   const partnerUserId = partnerProfile?.user_id ?? null;
 
@@ -42,6 +43,9 @@ const Index = () => {
           isCustom: true,
         }));
         setCustomNames(mapped);
+        setPartnerAddedNameIds(new Set(
+          dbNames.filter(n => n.added_by !== user.id).map(n => `custom-db-${n.id}`)
+        ));
       }
 
       const { data: dbSwipes } = await supabase.from('swipes').select('*');
@@ -201,11 +205,34 @@ const Index = () => {
                 </button>
               </div>
             ) : (
-              <MatchesList
-                matches={matches}
-                partner1Name={profile?.display_name}
-                partner2Name={partnerProfile?.display_name}
-              />
+              <>
+                {partnerProfile ? (
+                  <div className="mb-6 p-4 rounded-2xl bg-primary/5 border border-border flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-xl shrink-0">
+                      💑
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-foreground">
+                        {profile?.display_name} & {partnerProfile.display_name}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Your partner has swiped on {nameSwipe.getPartnerProgress(partnerUserId!).current} names
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mb-6 p-4 rounded-2xl bg-muted border border-border flex items-center gap-3">
+                    <span className="text-xl">⏳</span>
+                    <p className="text-sm text-muted-foreground">Waiting for your partner to join… Share the invite link to get them in!</p>
+                  </div>
+                )}
+                <MatchesList
+                  matches={matches}
+                  partner1Name={profile?.display_name}
+                  partner2Name={partnerProfile?.display_name}
+                  partnerAddedNameIds={partnerAddedNameIds}
+                />
+              </>
             )}
           </div>
         )}
