@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth, Couple } from '@/hooks/useAuth';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,13 +16,14 @@ const Onboarding = () => {
   const [code, setCode] = useState('');
   const [isWorking, setIsWorking] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [inviteCouple, setInviteCouple] = useState<Couple | null>(null);
 
-  // If already in a couple, go to app
+  // If already in a couple, go to app — but not while we're showing the invite screen
   useEffect(() => {
-    if (!loading && couple) {
+    if (!loading && couple && mode !== 'invite') {
       navigate('/');
     }
-  }, [couple, loading, navigate]);
+  }, [couple, loading, navigate, mode]);
 
   // If user is solo (no couple intent), go to app
   useEffect(() => {
@@ -46,6 +47,7 @@ const Onboarding = () => {
     if (error || !newCouple) {
       toast({ title: 'Failed to create invite', description: error?.message, variant: 'destructive' });
     } else {
+      setInviteCouple(newCouple);
       setMode('invite');
     }
   };
@@ -63,7 +65,7 @@ const Onboarding = () => {
     }
   };
 
-  const inviteLink = couple ? `${window.location.origin}/join/${couple.invite_code}` : '';
+  const inviteLink = inviteCouple ? `${window.location.origin}/join/${inviteCouple.invite_code}` : '';
 
   const copyLink = async () => {
     await navigator.clipboard.writeText(inviteLink);
@@ -124,7 +126,7 @@ const Onboarding = () => {
             </div>
           )}
 
-          {mode === 'invite' && couple && (
+          {mode === 'invite' && inviteCouple && (
             <div className="space-y-5">
               <div>
                 <h3 className="text-lg font-semibold text-foreground">Share with your partner</h3>
@@ -136,7 +138,7 @@ const Onboarding = () => {
               <div className="space-y-2">
                 <Label>Invite Code</Label>
                 <div className="text-3xl font-bold text-center tracking-[0.3em] py-4 bg-muted rounded-xl text-foreground">
-                  {couple.invite_code}
+                  {inviteCouple.invite_code}
                 </div>
               </div>
 
