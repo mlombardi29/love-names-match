@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Card } from '@/components/ui/card';
@@ -18,13 +18,16 @@ const Onboarding = () => {
   const [isWorking, setIsWorking] = useState(false);
   const [copied, setCopied] = useState(false);
   const [inviteCouple, setInviteCouple] = useState<Couple | null>(null);
+  // Ref so the redirect effect reads the up-to-date value synchronously,
+  // even when couple state and mode state updates land in different React batches.
+  const inviteInProgress = useRef(false);
 
-  // If already in a couple, go to app (skip when showing the invite screen)
+  // If already in a couple, go to app — but not if we're mid-invite-flow
   useEffect(() => {
-    if (!loading && couple && mode !== 'invite') {
+    if (!loading && couple && !inviteInProgress.current) {
       navigate('/');
     }
-  }, [couple, loading, navigate, mode]);
+  }, [couple, loading, navigate]);
 
   // If user is solo (no couple intent), go to app
   useEffect(() => {
@@ -42,10 +45,12 @@ const Onboarding = () => {
   }
 
   const handleInvite = async () => {
+    inviteInProgress.current = true; // set before any await so the redirect effect sees it immediately
     setIsWorking(true);
     const { couple: newCouple, error } = await createCouple();
     setIsWorking(false);
     if (error || !newCouple) {
+      inviteInProgress.current = false;
       toast({ title: 'Failed to create invite', description: error?.message, variant: 'destructive' });
     } else {
       setInviteCouple(newCouple);
