@@ -1,0 +1,2103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#070d2e" />
+<title>Free Agent — last-minute sports fill-ins</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+      colors: {
+        royal: {
+          950: '#040726',
+          900: '#070d2e',
+          850: '#0b1340',
+          800: '#0f1a5c',
+          700: '#16267a',
+          600: '#1f349e',
+          500: '#3151d6',
+          400: '#5b78ff',
+          300: '#8aa1ff',
+        },
+        accent: '#ffd60a',
+        urgent: '#ff3b5c',
+        live:   '#10e0a0',
+      },
+      boxShadow: {
+        'glow-urgent': '0 0 0 1px rgba(255,59,92,.55), 0 12px 40px -8px rgba(255,59,92,.55)',
+        'glow-gold':   '0 0 0 1px rgba(255,214,10,.45), 0 10px 30px -8px rgba(255,214,10,.35)',
+        'card':        '0 1px 0 rgba(255,255,255,.05) inset, 0 10px 30px -10px rgba(0,0,0,.6)',
+      },
+      animation: {
+        'pulse-soft': 'pulseSoft 2.2s ease-in-out infinite',
+        'slide-up':   'slideUp .35s cubic-bezier(.22,1,.36,1)',
+        'fade-in':    'fadeIn .25s ease-out',
+      },
+      keyframes: {
+        pulseSoft: {
+          '0%,100%': { boxShadow: '0 0 0 0 rgba(255,59,92,.55)' },
+          '50%':     { boxShadow: '0 0 0 10px rgba(255,59,92,0)' },
+        },
+        slideUp: {
+          '0%':   { transform: 'translateY(20px)', opacity: 0 },
+          '100%': { transform: 'translateY(0)',    opacity: 1 },
+        },
+        fadeIn: {
+          '0%':   { opacity: 0 },
+          '100%': { opacity: 1 },
+        },
+      },
+    }
+  }
+};
+</script>
+<style>
+  html, body { font-family: 'Inter', system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+  body {
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(91,120,255,.18), transparent 60%),
+      radial-gradient(900px 500px at 110% 0%, rgba(255,214,10,.08), transparent 60%),
+      linear-gradient(180deg, #040726 0%, #070d2e 40%, #060a26 100%);
+    min-height: 100vh;
+    color: #e9edff;
+  }
+  /* Phone-frame on desktop */
+  @media (min-width: 640px) {
+    .app-frame {
+      max-width: 440px;
+      margin: 24px auto;
+      border-radius: 36px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.07);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.04),
+        0 30px 80px -20px rgba(0,0,0,.7),
+        0 0 120px -20px rgba(91,120,255,.25);
+      min-height: calc(100vh - 48px);
+      background: linear-gradient(180deg, #060a2a 0%, #070d2e 100%);
+    }
+  }
+  /* Scrollbar */
+  .scroll-area::-webkit-scrollbar { width: 0px; height: 0px; }
+  /* Star input */
+  .star-input button { transition: transform .15s ease; }
+  .star-input button:hover { transform: scale(1.08); }
+  /* Tap feedback */
+  [data-action] { -webkit-tap-highlight-color: transparent; }
+  .tap:active { transform: scale(.98); transition: transform .08s; }
+  /* Hide number spinners */
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  /* Subtle dot grid */
+  .dotgrid {
+    background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,.06) 1px, transparent 0);
+    background-size: 18px 18px;
+  }
+  /* Glass cards */
+  .glass {
+    background: linear-gradient(180deg, rgba(31,52,158,.22) 0%, rgba(15,26,92,.55) 100%);
+    border: 1px solid rgba(139,161,255,.14);
+    backdrop-filter: blur(8px);
+  }
+  .glass-strong {
+    background: linear-gradient(180deg, rgba(49,81,214,.30) 0%, rgba(15,26,92,.75) 100%);
+    border: 1px solid rgba(139,161,255,.22);
+  }
+  .chip {
+    background: rgba(139,161,255,.10);
+    border: 1px solid rgba(139,161,255,.20);
+  }
+  .chip-on {
+    background: linear-gradient(180deg, #3151d6 0%, #1f349e 100%);
+    border: 1px solid rgba(139,161,255,.5);
+    color: #fff;
+    box-shadow: 0 6px 16px -6px rgba(91,120,255,.6);
+  }
+  /* Bottom safe area */
+  .pb-safe { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+  /* Pretty selects */
+  select { background-image: none; }
+  /* Sport tile gradient */
+  .sport-tile { background: linear-gradient(160deg, rgba(91,120,255,.15), rgba(15,26,92,.6)); }
+  .sport-tile.on { background: linear-gradient(160deg, rgba(91,120,255,.55), rgba(31,52,158,.85)); border-color: rgba(139,161,255,.65); }
+  /* Map placeholder */
+  .map {
+    background:
+      linear-gradient(rgba(7,13,46,.6), rgba(7,13,46,.6)),
+      radial-gradient(circle at 30% 40%, rgba(91,120,255,.4), transparent 40%),
+      radial-gradient(circle at 70% 60%, rgba(255,214,10,.15), transparent 40%),
+      linear-gradient(135deg, #0b1340 0%, #1f349e 100%);
+  }
+  .map-pin {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: #ff3b5c; border: 2px solid #fff;
+    box-shadow: 0 0 0 6px rgba(255,59,92,.25), 0 6px 14px rgba(0,0,0,.5);
+  }
+  /* Message bubbles */
+  .bubble-me  { background: linear-gradient(180deg, #3151d6, #1f349e); border-top-right-radius: 4px; }
+  .bubble-you { background: rgba(139,161,255,.10); border: 1px solid rgba(139,161,255,.15); border-top-left-radius: 4px; }
+  /* Toast */
+  .toast { animation: slideUp .35s cubic-bezier(.22,1,.36,1); }
+  /* No text size on iOS auto-zoom */
+  input, select, textarea { font-size: 16px; }
+  /* Switch */
+  .switch-track { background: rgba(15,26,92,.8); border: 1px solid rgba(139,161,255,.20); }
+  .switch-knob {
+    position: absolute; top: 4px; left: 4px; width: calc(50% - 4px);
+    height: calc(100% - 8px); border-radius: 999px;
+    background: linear-gradient(180deg, #3151d6, #1f349e);
+    transition: transform .25s cubic-bezier(.4,0,.2,1);
+    box-shadow: 0 6px 14px -4px rgba(91,120,255,.6);
+  }
+  .switch-knob.right { transform: translateX(100%); }
+  /* Skeleton */
+  .skl { background: linear-gradient(90deg, rgba(139,161,255,.05), rgba(139,161,255,.15), rgba(139,161,255,.05)); background-size: 200% 100%; animation: shimmer 1.6s linear infinite; }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  /* Modal */
+  .scrim { background: rgba(4,7,38,.7); backdrop-filter: blur(6px); }
+</style>
+</head>
+<body>
+
+<div class="app-frame relative">
+  <div id="app" class="relative pb-safe scroll-area"></div>
+  <div id="overlays"></div>
+  <div id="toasts" class="fixed bottom-24 left-1/2 -translate-x-1/2 z-[60] flex flex-col gap-2 items-center pointer-events-none"></div>
+  <nav id="bottom-nav" class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[440px] z-50 px-4 pb-[max(env(safe-area-inset-bottom),12px)] pt-2"></nav>
+</div>
+
+<script>
+/* ============================================================
+   FREE AGENT — single-file demo app
+   ============================================================ */
+
+// ------------------------------------------------------------
+// Constants
+// ------------------------------------------------------------
+const SPORTS = [
+  { id: 'hockey',     name: 'Hockey',          emoji: '🏒', formats: ['5v5', '4v4', '3v3'] },
+  { id: 'soccer',     name: 'Soccer',          emoji: '⚽', formats: ['11v11', '7v7', '5v5'] },
+  { id: 'basketball', name: 'Basketball',      emoji: '🏀', formats: ['5v5', '3v3'] },
+  { id: 'vball_in',   name: 'Volleyball (Indoor)', emoji: '🏐', formats: ['6v6', '4v4'] },
+  { id: 'vball_bch',  name: 'Volleyball (Beach)',  emoji: '🏖️', formats: ['2v2', '4v4'] },
+  { id: 'ultimate',   name: 'Ultimate',        emoji: '🥏', formats: ['7v7', '4v4'] },
+];
+const SPORT_MAP = Object.fromEntries(SPORTS.map(s => [s.id, s]));
+const GENDERS = [
+  { id: 'open', name: 'Open / Any' },
+  { id: 'coed', name: 'Coed' },
+  { id: 'men', name: "Men's" },
+  { id: 'women', name: "Women's" },
+];
+
+// ------------------------------------------------------------
+// State + storage
+// ------------------------------------------------------------
+const LS_KEY = 'free-agent.v1';
+const state = {
+  currentUserId: 'u_alex',
+  view: 'player',          // 'player' | 'manager'
+  screen: 'discover',      // dynamic
+  params: {},              // screen-level params (e.g. requestId)
+  filterSport: 'all',
+  sort: 'match',
+  draftRequest: null,
+  draftRating: null,
+  data: { users: [], requests: [], messages: [], ratings: [] },
+};
+
+function saveData() {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(state.data));
+  } catch (e) { console.warn('save failed', e); }
+}
+function loadData() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) { return null; }
+}
+
+// ------------------------------------------------------------
+// Helpers
+// ------------------------------------------------------------
+const $  = (sel, el = document) => el.querySelector(sel);
+const $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
+
+const uid = (p='id') => `${p}_${Math.random().toString(36).slice(2, 9)}`;
+const now = () => new Date();
+
+function escapeHtml(str = '') {
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function getUser(id) { return state.data.users.find(u => u.id === id); }
+function getRequest(id) { return state.data.requests.find(r => r.id === id); }
+function me() { return getUser(state.currentUserId); }
+
+function distanceKm(a, b) {
+  if (!a || !b) return 0;
+  const R = 6371;
+  const dLat = (b.lat - a.lat) * Math.PI / 180;
+  const dLng = (b.lng - a.lng) * Math.PI / 180;
+  const la1 = a.lat * Math.PI/180, la2 = b.lat * Math.PI/180;
+  const x = Math.sin(dLat/2)**2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLng/2)**2;
+  return Math.round(R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1-x)) * 10) / 10;
+}
+
+function hoursUntil(dateStr) {
+  return (new Date(dateStr) - now()) / 3600000;
+}
+function urgencyOf(dateStr) {
+  const h = hoursUntil(dateStr);
+  if (h < 0)   return { key: 'past',     label: 'Past',     color: 'text-blue-300/60', bg: 'bg-white/5', dot: 'bg-blue-300/60' };
+  if (h < 4)   return { key: 'critical', label: 'NOW · within ' + Math.max(1, Math.round(h*60)/60) + 'h', color: 'text-urgent', bg: 'bg-urgent/15', dot: 'bg-urgent' };
+  if (h < 24)  return { key: 'tonight',  label: h < 12 ? 'Tonight' : 'Within 24h', color: 'text-accent', bg: 'bg-accent/15', dot: 'bg-accent' };
+  if (h < 72)  return { key: 'soon',     label: 'Within 3 days', color: 'text-royal-300', bg: 'bg-royal-400/10', dot: 'bg-royal-400' };
+  return        { key: 'planned',  label: 'Upcoming', color: 'text-blue-200/70', bg: 'bg-white/5', dot: 'bg-blue-200/70' };
+}
+
+function formatWhen(dateStr) {
+  const d = new Date(dateStr);
+  const diff = (d - now()) / 3600000;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const day = new Date(d); day.setHours(0,0,0,0);
+  const dayDiff = Math.round((day - today) / 86400000);
+  const t = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  if (diff < 0)   return 'Past · ' + d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' · ' + t;
+  if (dayDiff === 0)  return diff < 12 ? `Tonight · ${t}` : `Today · ${t}`;
+  if (dayDiff === 1)  return `Tomorrow · ${t}`;
+  if (dayDiff < 7)    return `${d.toLocaleDateString([], { weekday: 'long' })} · ${t}`;
+  return d.toLocaleDateString([], { month: 'short', day: 'numeric', weekday: 'short' }) + ` · ${t}`;
+}
+
+function timeAgo(dateStr) {
+  const ms = now() - new Date(dateStr);
+  const m = Math.floor(ms / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}d`;
+  return new Date(dateStr).toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
+
+function userRatingSummary(user) {
+  const recv = state.data.ratings.filter(r => r.targetId === user.id);
+  if (recv.length === 0) return null;
+  const skill = recv.filter(r => r.skill != null);
+  const sport = recv.filter(r => r.sportsmanship != null);
+  const avgS = skill.length ? skill.reduce((a, r) => a + r.skill, 0) / skill.length : null;
+  const avgM = sport.length ? sport.reduce((a, r) => a + r.sportsmanship, 0) / sport.length : null;
+  return { count: recv.length, skill: avgS, sportsmanship: avgM };
+}
+
+function matchScore(user, request) {
+  if (!user || !request) return -1;
+  if (request.status !== 'open') return -1;
+  if (request.managerId === user.id) return -1;
+  const us = user.sports.find(s => s.sport === request.sport);
+  if (!us) return -1;
+  if (us.skill < request.minSkill) return -1;
+  // gender filter
+  if (request.genderReq === 'men'   && user.gender !== 'male')   return -1;
+  if (request.genderReq === 'women' && user.gender !== 'female') return -1;
+  // base
+  let score = 100;
+  score += (us.skill - request.minSkill) * 5;
+  const dist = distanceKm(user.location, request.location);
+  if (dist > (user.proximityKm || 25)) score -= 40;
+  else score += Math.max(0, (user.proximityKm || 25) - dist) * 1.5;
+  const h = hoursUntil(request.date);
+  if (h > 0 && h < 4)   score += 35;
+  else if (h < 24)      score += 18;
+  else if (h < 72)      score += 6;
+  if (request.payment > 0) score += Math.min(request.payment / 5, 12);
+  return Math.round(score);
+}
+
+function visibleRequestsForPlayer(userId) {
+  const user = getUser(userId);
+  return state.data.requests
+    .map(r => ({ r, score: matchScore(user, r) }))
+    .filter(x => x.score >= 0)
+    .sort((a, b) => {
+      if (state.sort === 'soonest') return new Date(a.r.date) - new Date(b.r.date);
+      if (state.sort === 'pay') return (b.r.payment||0) - (a.r.payment||0);
+      return b.score - a.score;
+    });
+}
+
+function threadMessages(requestId) {
+  return state.data.messages
+    .filter(m => m.requestId === requestId)
+    .sort((a, b) => new Date(a.ts) - new Date(b.ts));
+}
+
+function threadsForUser(userId) {
+  const userReqIds = new Set();
+  state.data.requests.forEach(r => {
+    if (r.managerId === userId && r.claimedBy) userReqIds.add(r.id);
+    if (r.claimedBy === userId) userReqIds.add(r.id);
+  });
+  return [...userReqIds]
+    .map(id => {
+      const req = getRequest(id);
+      const msgs = threadMessages(id);
+      const last = msgs[msgs.length - 1];
+      const other = req.managerId === userId ? getUser(req.claimedBy) : getUser(req.managerId);
+      return { request: req, lastMessage: last, other, msgs };
+    })
+    .filter(t => t.other)
+    .sort((a, b) => {
+      const at = a.lastMessage ? new Date(a.lastMessage.ts) : new Date(a.request.createdAt || 0);
+      const bt = b.lastMessage ? new Date(b.lastMessage.ts) : new Date(b.request.createdAt || 0);
+      return bt - at;
+    });
+}
+
+function canPlayerSeeRating(rating, viewerId) {
+  // viewer can ALWAYS see ratings they themselves authored
+  if (rating.fromId === viewerId) return true;
+  // viewer is the target — they can see this rating only if they have rated the same request
+  if (rating.targetId === viewerId) {
+    return state.data.ratings.some(r => r.requestId === rating.requestId && r.fromId === viewerId);
+  }
+  // viewer is third party — can see if BOTH parties have rated (or if it's been > 14 days)
+  const bothRated = state.data.ratings.filter(r => r.requestId === rating.requestId).length >= 2;
+  const old = (now() - new Date(rating.createdAt)) > 14 * 86400000;
+  return bothRated || old;
+}
+
+function pendingRatings(userId) {
+  // requests where the user participated, game is past, and the user has not yet rated
+  const out = [];
+  state.data.requests.forEach(r => {
+    if (r.status !== 'completed' && r.status !== 'claimed') return;
+    if (new Date(r.date) > now()) return; // game must be past
+    const participants = [r.managerId, r.claimedBy].filter(Boolean);
+    if (!participants.includes(userId)) return;
+    const otherId = participants.find(p => p !== userId);
+    if (!otherId) return;
+    const already = state.data.ratings.find(rt => rt.requestId === r.id && rt.fromId === userId);
+    if (!already) out.push({ request: r, otherId });
+  });
+  return out;
+}
+
+function toast(text, kind='info') {
+  const wrap = $('#toasts');
+  const el = document.createElement('div');
+  const color = kind === 'success' ? 'bg-live/95 text-royal-950' :
+                kind === 'error'   ? 'bg-urgent text-white'      :
+                                     'bg-royal-700/95 text-white border border-royal-400/40';
+  el.className = `toast pointer-events-auto px-4 py-2.5 rounded-full text-sm font-semibold shadow-lg ${color}`;
+  el.textContent = text;
+  wrap.appendChild(el);
+  setTimeout(() => {
+    el.style.transition = 'opacity .3s';
+    el.style.opacity = 0;
+    setTimeout(() => el.remove(), 350);
+  }, 2200);
+}
+
+// ------------------------------------------------------------
+// Seed data
+// ------------------------------------------------------------
+const LOC = {
+  williamsburg: { label: 'Williamsburg, Brooklyn',  lat: 40.7081, lng: -73.9571 },
+  parkslope:    { label: 'Park Slope, Brooklyn',    lat: 40.6710, lng: -73.9814 },
+  lic:          { label: 'Long Island City',         lat: 40.7447, lng: -73.9485 },
+  astoria:      { label: 'Astoria, Queens',          lat: 40.7720, lng: -73.9300 },
+  chelseaPiers: { label: 'Chelsea Piers, Manhattan', lat: 40.7480, lng: -74.0085 },
+  midtown:      { label: 'Midtown, Manhattan',       lat: 40.7549, lng: -73.9840 },
+  bkBridge:     { label: 'Brooklyn Bridge Park',     lat: 40.7024, lng: -73.9962 },
+  rockaway:     { label: 'Rockaway Beach',           lat: 40.5832, lng: -73.8157 },
+  prospect:     { label: 'Prospect Park, Brooklyn',  lat: 40.6602, lng: -73.9690 },
+  dumbo:        { label: 'DUMBO, Brooklyn',          lat: 40.7033, lng: -73.9881 },
+};
+
+function hoursFromNow(h, mins=0) {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() + h * 60 + mins);
+  d.setSeconds(0, 0);
+  return d.toISOString();
+}
+function daysAgo(d, hour=19) {
+  const t = new Date();
+  t.setDate(t.getDate() - d);
+  t.setHours(hour, 0, 0, 0);
+  return t.toISOString();
+}
+
+function seedData() {
+  const users = [
+    {
+      id: 'u_alex', name: 'Alex Rivera', initials: 'AR', color: '#5b78ff',
+      gender: 'female', location: LOC.williamsburg, proximityKm: 15,
+      bio: "Lifelong rink rat. Will travel for a 9pm puck drop.",
+      sports: [
+        { sport: 'hockey', skill: 4 },
+        { sport: 'soccer', skill: 4 },
+        { sport: 'basketball', skill: 3 },
+        { sport: 'ultimate', skill: 4 },
+        { sport: 'vball_in', skill: 3 },
+      ],
+      createdAt: daysAgo(120),
+    },
+    {
+      id: 'u_marcus', name: 'Marcus Chen', initials: 'MC', color: '#10e0a0',
+      gender: 'male', location: LOC.lic, proximityKm: 20,
+      bio: 'Captain of a Sunday hockey squad. Always recruiting goalies.',
+      sports: [
+        { sport: 'hockey', skill: 4 },
+        { sport: 'soccer', skill: 3 },
+      ],
+      createdAt: daysAgo(200),
+    },
+    {
+      id: 'u_sofia', name: 'Sofia Reyes', initials: 'SR', color: '#ffd60a',
+      gender: 'female', location: LOC.midtown, proximityKm: 25,
+      bio: "College ball alum. Women's rec league captain in Chelsea.",
+      sports: [
+        { sport: 'basketball', skill: 5 },
+        { sport: 'soccer', skill: 4 },
+      ],
+      createdAt: daysAgo(150),
+    },
+    {
+      id: 'u_jordan', name: 'Jordan Park', initials: 'JP', color: '#ff6b9d',
+      gender: 'nonbinary', location: LOC.dumbo, proximityKm: 30,
+      bio: 'Beach vball season warrior. Will play in any weather.',
+      sports: [
+        { sport: 'vball_bch', skill: 4 },
+        { sport: 'vball_in', skill: 3 },
+        { sport: 'ultimate', skill: 5 },
+      ],
+      createdAt: daysAgo(80),
+    },
+    {
+      id: 'u_priya', name: 'Priya Shah', initials: 'PS', color: '#a78bfa',
+      gender: 'female', location: LOC.astoria, proximityKm: 20,
+      bio: 'Striker. Quiet on the field, loud in the group chat.',
+      sports: [
+        { sport: 'soccer', skill: 5 },
+        { sport: 'ultimate', skill: 4 },
+      ],
+      createdAt: daysAgo(300),
+    },
+    {
+      id: 'u_devon', name: 'Devon Walsh', initials: 'DW', color: '#22d3ee',
+      gender: 'male', location: LOC.lic, proximityKm: 25,
+      bio: 'Defenseman. Loves a clean breakout.',
+      sports: [
+        { sport: 'hockey', skill: 5 },
+        { sport: 'basketball', skill: 3 },
+      ],
+      createdAt: daysAgo(95),
+    },
+    {
+      id: 'u_ana', name: 'Ana Castillo', initials: 'AC', color: '#fb923c',
+      gender: 'female', location: LOC.parkslope, proximityKm: 15,
+      bio: 'Setter. Outside hitters welcome.',
+      sports: [
+        { sport: 'vball_in', skill: 5 },
+        { sport: 'vball_bch', skill: 4 },
+      ],
+      createdAt: daysAgo(60),
+    },
+  ];
+
+  const requests = [
+    {
+      id: 'r_001', managerId: 'u_marcus', sport: 'hockey', format: '3v3',
+      date: hoursFromNow(2, 30), location: LOC.lic,
+      genderReq: 'coed', minSkill: 3, payment: 0,
+      notes: 'Need one forward — friendly stick-time. Free ice if you bring it home.',
+      status: 'open', claimedBy: null, createdAt: hoursFromNow(-3),
+    },
+    {
+      id: 'r_002', managerId: 'u_sofia', sport: 'basketball', format: '5v5',
+      date: hoursFromNow(5),
+      location: LOC.chelseaPiers, genderReq: 'women', minSkill: 3, payment: 20,
+      notes: "Women's league makeup game. We're short one. Wear black.",
+      status: 'open', claimedBy: null, createdAt: hoursFromNow(-6),
+    },
+    {
+      id: 'r_003', managerId: 'u_jordan', sport: 'vball_bch', format: '2v2',
+      date: hoursFromNow(22),
+      location: LOC.rockaway, genderReq: 'open', minSkill: 3, payment: 0,
+      notes: 'Doubles tourney warm-up. Bring sunscreen.',
+      status: 'open', claimedBy: null, createdAt: hoursFromNow(-12),
+    },
+    {
+      id: 'r_004', managerId: 'u_priya', sport: 'soccer', format: '7v7',
+      date: hoursFromNow(72),
+      location: LOC.prospect, genderReq: 'coed', minSkill: 3, payment: 10,
+      notes: 'Coed 7s. Field rental split — $10 covers your share.',
+      status: 'open', claimedBy: null, createdAt: hoursFromNow(-48),
+    },
+    {
+      id: 'r_005', managerId: 'u_devon', sport: 'hockey', format: '5v5',
+      date: hoursFromNow(46),
+      location: LOC.lic, genderReq: 'open', minSkill: 4, payment: 25,
+      notes: 'Higher tempo — bring full gear. $25 covers ice.',
+      status: 'open', claimedBy: null, createdAt: hoursFromNow(-20),
+    },
+    {
+      id: 'r_006', managerId: 'u_ana', sport: 'vball_in', format: '6v6',
+      date: hoursFromNow(96),
+      location: LOC.parkslope, genderReq: 'coed', minSkill: 3, payment: 0,
+      notes: 'Weeknight league. Need a back-row.',
+      status: 'open', claimedBy: null, createdAt: hoursFromNow(-30),
+    },
+    // Past completed games — for history + ratings already
+    {
+      id: 'r_p01', managerId: 'u_marcus', sport: 'hockey', format: '3v3',
+      date: daysAgo(7, 20), location: LOC.lic,
+      genderReq: 'coed', minSkill: 3, payment: 0,
+      notes: 'Pickup with the regulars.',
+      status: 'completed', claimedBy: 'u_alex', createdAt: daysAgo(8, 9),
+    },
+    {
+      id: 'r_p02', managerId: 'u_alex', sport: 'soccer', format: '7v7',
+      date: daysAgo(14, 18), location: LOC.prospect,
+      genderReq: 'coed', minSkill: 3, payment: 0,
+      notes: 'Sunday coed soccer.',
+      status: 'completed', claimedBy: 'u_priya', createdAt: daysAgo(15, 9),
+    },
+    // Past game awaiting Alex's rating (Devon rated Alex already, but Alex hasn't rated back yet)
+    {
+      id: 'r_p03', managerId: 'u_devon', sport: 'hockey', format: '5v5',
+      date: hoursFromNow(-30), location: LOC.lic,
+      genderReq: 'open', minSkill: 3, payment: 15,
+      notes: 'Late-night skate.',
+      status: 'completed', claimedBy: 'u_alex', createdAt: daysAgo(2, 9),
+    },
+  ];
+
+  const ratings = [
+    // From Marcus → Alex for r_p01 (Alex can see because she rated Marcus already)
+    {
+      id: 'rt_01', requestId: 'r_p01', fromId: 'u_marcus', targetId: 'u_alex',
+      role: 'manager-rating-player', skill: 5, sportsmanship: 5,
+      publicNote: 'Hands. Showed up on time, scored two, bought the next round.',
+      privateNote: '', createdAt: daysAgo(6),
+    },
+    // From Alex → Marcus (player rating manager)
+    {
+      id: 'rt_02', requestId: 'r_p01', fromId: 'u_alex', targetId: 'u_marcus',
+      role: 'player-rating-manager', sportsmanship: 5,
+      publicNote: 'Marcus runs a great room. Communicated everything clearly.',
+      privateNote: '', createdAt: daysAgo(6),
+    },
+    // From Priya → Alex (manager rating player — Alex was manager of r_p02 wait, no, r_p02 has Alex as manager)
+    // Actually let's flip: From Alex (manager) → Priya, and from Priya (player) → Alex
+    {
+      id: 'rt_03', requestId: 'r_p02', fromId: 'u_alex', targetId: 'u_priya',
+      role: 'manager-rating-player', skill: 5, sportsmanship: 5,
+      publicNote: "Two goals and a perfect through-ball. Day-maker.",
+      privateNote: '', createdAt: daysAgo(13),
+    },
+    {
+      id: 'rt_04', requestId: 'r_p02', fromId: 'u_priya', targetId: 'u_alex',
+      role: 'player-rating-manager', sportsmanship: 4,
+      publicNote: "Smooth operator. Field was a little muddy but Alex made it work.",
+      privateNote: '', createdAt: daysAgo(13),
+    },
+    // From Devon → Alex (manager rating player) — but Alex hasn't rated back yet, so this is HIDDEN to Alex
+    {
+      id: 'rt_05', requestId: 'r_p03', fromId: 'u_devon', targetId: 'u_alex',
+      role: 'manager-rating-player', skill: 4, sportsmanship: 5,
+      publicNote: "Solid two-way play. Welcome back anytime.",
+      privateNote: 'Bring a darker jersey next time.', createdAt: hoursFromNow(-20),
+    },
+  ];
+
+  const messages = [
+    {
+      id: 'm_01', requestId: 'r_p01', fromId: 'u_alex',
+      text: 'Hey! Just claimed your game — what time should I show?',
+      ts: daysAgo(8, 10),
+    },
+    {
+      id: 'm_02', requestId: 'r_p01', fromId: 'u_marcus',
+      text: 'Yes! Be at the rink by 7:30. Locker 4. Dark jersey if you have one.',
+      ts: daysAgo(8, 10),
+    },
+  ];
+
+  return { users, requests, messages, ratings };
+}
+
+// ------------------------------------------------------------
+// Init
+// ------------------------------------------------------------
+function init() {
+  const persisted = loadData();
+  state.data = (persisted && persisted.users && persisted.users.length) ? persisted : seedData();
+  saveData();
+  render();
+  bindEvents();
+}
+
+// ------------------------------------------------------------
+// Renderers
+// ------------------------------------------------------------
+function render() {
+  $('#app').innerHTML = renderTopBar() + renderScreen();
+  $('#bottom-nav').innerHTML = renderBottomNav();
+  // scroll to top on screen change
+  window.scrollTo({ top: 0, behavior: 'instant' });
+}
+
+function renderTopBar() {
+  const u = me();
+  return `
+  <header class="sticky top-0 z-40 px-5 pt-5 pb-3 bg-gradient-to-b from-royal-950/95 via-royal-950/90 to-royal-950/0 backdrop-blur-md">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-royal-400 to-royal-700 flex items-center justify-center shadow-lg">
+          <svg viewBox="0 0 24 24" class="w-5 h-5 text-white" fill="currentColor"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+        </div>
+        <div class="leading-none">
+          <div class="text-[10px] tracking-[0.25em] font-bold text-royal-300/80">FREE</div>
+          <div class="text-sm font-black tracking-tight -mt-0.5">AGENT</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button data-action="open-screen" data-screen="profile"
+                class="w-9 h-9 rounded-full overflow-hidden ring-2 ring-royal-400/30 tap flex items-center justify-center font-bold text-sm"
+                style="background: linear-gradient(135deg, ${u.color}, ${u.color}66);">
+          ${u.initials}
+        </button>
+      </div>
+    </div>
+    ${renderViewSwitch()}
+  </header>
+  `;
+}
+
+function renderViewSwitch() {
+  const isPlayer = state.view === 'player';
+  return `
+  <div class="mt-3">
+    <div class="relative switch-track h-11 rounded-full p-1 grid grid-cols-2 select-none">
+      <div class="switch-knob ${isPlayer ? '' : 'right'}"></div>
+      <button data-action="switch-view" data-view="player"
+              class="relative z-10 rounded-full text-sm font-bold flex items-center justify-center gap-1.5 ${isPlayer ? 'text-white' : 'text-royal-300/70'}">
+        <span>🏃</span> PLAY
+      </button>
+      <button data-action="switch-view" data-view="manager"
+              class="relative z-10 rounded-full text-sm font-bold flex items-center justify-center gap-1.5 ${!isPlayer ? 'text-white' : 'text-royal-300/70'}">
+        <span>📋</span> MANAGE
+      </button>
+    </div>
+  </div>
+  `;
+}
+
+function renderBottomNav() {
+  const navItems = state.view === 'player'
+    ? [
+        { id: 'discover', label: 'Discover', icon: iconSearch },
+        { id: 'messages', label: 'Messages', icon: iconChat },
+        { id: 'profile',  label: 'Profile',  icon: iconUser  },
+      ]
+    : [
+        { id: 'manager-home', label: 'My Games', icon: iconList   },
+        { id: 'new-request',  label: 'Post',     icon: iconPlus,  primary: true },
+        { id: 'messages',     label: 'Messages', icon: iconChat   },
+        { id: 'profile',      label: 'Profile',  icon: iconUser   },
+      ];
+  // unread badge for messages
+  const threads = threadsForUser(state.currentUserId);
+  const unread = threads.filter(t => t.lastMessage && t.lastMessage.fromId !== state.currentUserId).length;
+  return `
+  <div class="glass-strong rounded-2xl px-2 py-2 flex items-stretch justify-around shadow-card">
+    ${navItems.map(item => {
+      const active = state.screen === item.id || (item.id === 'manager-home' && state.screen === 'request-detail' && state.view === 'manager');
+      const isMsg = item.id === 'messages';
+      return `
+        <button data-action="open-screen" data-screen="${item.id}"
+                class="relative flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 rounded-xl tap
+                       ${item.primary ? 'mx-1' : ''}">
+          <div class="${item.primary
+                    ? 'w-11 h-11 -mt-3 rounded-2xl bg-gradient-to-br from-royal-400 to-royal-600 shadow-lg flex items-center justify-center'
+                    : (active ? 'text-white' : 'text-royal-300/60')} relative">
+            ${item.icon(item.primary ? 'w-6 h-6 text-white' : 'w-5 h-5')}
+            ${isMsg && unread ? `<span class="absolute -top-1 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-urgent text-white text-[10px] font-bold flex items-center justify-center">${unread}</span>` : ''}
+          </div>
+          <span class="text-[10px] font-semibold ${active ? 'text-white' : 'text-royal-300/60'} ${item.primary ? 'mt-1' : ''}">${item.label}</span>
+        </button>
+      `;
+    }).join('')}
+  </div>
+  `;
+}
+
+function renderScreen() {
+  const s = state.screen;
+  if (state.view === 'player') {
+    if (s === 'discover')        return renderDiscover();
+    if (s === 'request-detail')  return renderPlayerRequestDetail();
+    if (s === 'messages')        return renderMessagesList();
+    if (s === 'thread')          return renderThread();
+    if (s === 'profile')         return renderProfile();
+    return renderDiscover();
+  } else {
+    if (s === 'manager-home')    return renderManagerHome();
+    if (s === 'new-request')     return renderNewRequest();
+    if (s === 'request-detail')  return renderManagerRequestDetail();
+    if (s === 'messages')        return renderMessagesList();
+    if (s === 'thread')          return renderThread();
+    if (s === 'profile')         return renderProfile();
+    return renderManagerHome();
+  }
+}
+
+// ---------- Discover (Player) ----------
+function renderDiscover() {
+  const u = me();
+  const matches = visibleRequestsForPlayer(u.id);
+  const filtered = state.filterSport === 'all'
+    ? matches
+    : matches.filter(m => m.r.sport === state.filterSport);
+  const pending = pendingRatings(u.id);
+
+  return `
+  <main class="px-5 pt-2 animate-fade-in">
+    <div class="mb-4">
+      <h1 class="text-2xl font-black tracking-tight">Hey ${u.name.split(' ')[0]} 👋</h1>
+      <p class="text-sm text-royal-300/80 mt-0.5">${filtered.length} game${filtered.length===1?'':'s'} near ${u.location.label.split(',')[0]}</p>
+    </div>
+
+    ${pending.length ? `
+      <div class="mb-4 glass rounded-2xl p-4 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-accent/15 text-accent flex items-center justify-center text-lg">⭐</div>
+        <div class="flex-1">
+          <div class="text-sm font-bold">Rate your last game</div>
+          <div class="text-xs text-royal-300/70">${pending.length} game${pending.length>1?'s':''} waiting for your review</div>
+        </div>
+        <button data-action="open-screen" data-screen="profile"
+                class="text-xs font-bold text-accent tap">REVIEW →</button>
+      </div>
+    ` : ''}
+
+    <!-- Filters -->
+    <div class="flex items-center gap-2 overflow-x-auto -mx-5 px-5 pb-3 scroll-area">
+      ${renderFilterChip('all','All','')}
+      ${SPORTS.map(s => renderFilterChip(s.id, s.name, s.emoji)).join('')}
+    </div>
+
+    <!-- Sort row -->
+    <div class="flex items-center justify-between mb-3">
+      <div class="text-xs uppercase tracking-wider text-royal-300/60 font-bold">${filtered.length} open</div>
+      <div class="flex items-center gap-1 text-xs">
+        ${['match','soonest','pay'].map(s => `
+          <button data-action="set-sort" data-sort="${s}"
+                  class="px-2.5 py-1 rounded-full font-semibold ${state.sort===s ? 'chip-on' : 'chip text-royal-300/80'}">
+            ${s === 'match' ? 'Best match' : s === 'soonest' ? 'Soonest' : 'Highest pay'}
+          </button>
+        `).join('')}
+      </div>
+    </div>
+
+    <!-- Cards -->
+    <div class="flex flex-col gap-3">
+      ${filtered.length === 0
+        ? renderEmpty('No matching games', 'Try a different sport filter or widen your distance preference.')
+        : filtered.map(({ r, score }) => renderRequestCard(r, { showMatchBadge: state.sort === 'match', score })).join('')
+      }
+    </div>
+
+    ${renderDisclaimerCard()}
+  </main>
+  `;
+}
+
+function renderFilterChip(id, label, emoji) {
+  const on = state.filterSport === id;
+  return `
+  <button data-action="set-filter" data-sport="${id}"
+          class="shrink-0 px-3.5 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap tap ${on ? 'chip-on' : 'chip text-royal-300/80'}">
+    ${emoji ? `<span class="mr-1">${emoji}</span>` : ''}${label}
+  </button>
+  `;
+}
+
+function renderRequestCard(r, opts={}) {
+  const sport = SPORT_MAP[r.sport];
+  const u  = me();
+  const mgr = getUser(r.managerId);
+  const dist = distanceKm(u.location, r.location);
+  const urg = urgencyOf(r.date);
+  const summary = userRatingSummary(mgr);
+  const isCritical = urg.key === 'critical';
+  const isHot = urg.key === 'critical' || urg.key === 'tonight';
+
+  return `
+  <button data-action="open-request" data-request-id="${r.id}"
+          class="text-left w-full glass rounded-2xl p-4 tap relative overflow-hidden
+                 ${isCritical ? 'shadow-glow-urgent border-urgent/40' : (urg.key === 'tonight' ? 'shadow-glow-gold border-accent/30' : '')}">
+    ${isCritical ? `<div class="absolute -top-px -right-px w-2 h-2 m-3 rounded-full bg-urgent animate-pulse-soft"></div>` : ''}
+
+    <div class="flex items-start gap-3">
+      <div class="w-14 h-14 rounded-2xl sport-tile flex items-center justify-center text-3xl border border-royal-400/20 shrink-0">
+        ${sport.emoji}
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center justify-between gap-2">
+          <div class="font-bold text-[15px] truncate">${sport.name} · ${r.format}</div>
+          <div class="text-[10px] font-bold uppercase tracking-wider ${urg.color} ${urg.bg} px-2 py-0.5 rounded-full whitespace-nowrap">
+            ${urg.label}
+          </div>
+        </div>
+        <div class="text-[13px] text-royal-200/90 mt-0.5 font-semibold">${formatWhen(r.date)}</div>
+        <div class="flex items-center gap-1.5 text-xs text-royal-300/70 mt-1">
+          ${iconPin('w-3.5 h-3.5')} <span class="truncate">${r.location.label}</span>
+          <span class="text-royal-400/40">·</span>
+          <span>${dist} km</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-3 pt-3 border-t border-royal-400/10 flex items-center justify-between">
+      <div class="flex items-center gap-2 min-w-0">
+        <div class="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
+             style="background: linear-gradient(135deg, ${mgr.color}, ${mgr.color}88);">${mgr.initials}</div>
+        <div class="min-w-0">
+          <div class="text-xs font-semibold truncate">${mgr.name}</div>
+          <div class="flex items-center gap-1 text-[10px] text-royal-300/70">
+            ${summary
+              ? `${renderStarsSmall(summary.sportsmanship || 0)} <span>${(summary.sportsmanship||0).toFixed(1)}</span>`
+              : `<span>New manager</span>`}
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center gap-1.5">
+        ${r.payment > 0
+          ? `<div class="text-[11px] font-bold bg-live/15 text-live px-2 py-1 rounded-full">+$${r.payment}</div>`
+          : ''}
+        <div class="text-[10px] text-royal-300/70 font-semibold">Min ${renderStarsTiny(r.minSkill)}</div>
+      </div>
+    </div>
+  </button>
+  `;
+}
+
+function renderDisclaimerCard() {
+  return `
+  <div class="mt-5 mb-2 flex items-start gap-2 text-[11px] text-royal-300/60 px-2">
+    <div class="mt-px">${iconShield('w-3.5 h-3.5')}</div>
+    <div>Free Agent never handles money. Any payment is between you and the other party — settle directly (cash, Venmo, etc.).</div>
+  </div>
+  `;
+}
+
+// ---------- Request detail (Player) ----------
+function renderPlayerRequestDetail() {
+  const r = getRequest(state.params.requestId);
+  if (!r) return renderError('Request not found.');
+  const sport = SPORT_MAP[r.sport];
+  const mgr = getUser(r.managerId);
+  const u   = me();
+  const dist = distanceKm(u.location, r.location);
+  const urg = urgencyOf(r.date);
+  const mgrSummary = userRatingSummary(mgr);
+  const claimedByMe = r.claimedBy === u.id;
+  const claimed = !!r.claimedBy;
+  const gender = GENDERS.find(g => g.id === r.genderReq).name;
+  const isOpen = r.status === 'open';
+
+  return `
+  <main class="animate-fade-in">
+    <div class="px-5 pt-2">
+      <button data-action="go-back" class="text-royal-300/70 text-sm font-semibold flex items-center gap-1 tap">${iconBack('w-4 h-4')} Back</button>
+    </div>
+
+    ${urg.key === 'critical' ? `
+      <div class="mx-5 mt-3 rounded-2xl p-3 bg-urgent/15 border border-urgent/40 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-urgent animate-pulse-soft"></span>
+        <div class="text-sm font-bold text-urgent">URGENT · ${urg.label}</div>
+      </div>
+    ` : ''}
+
+    <section class="px-5 pt-4">
+      <div class="flex items-center gap-3">
+        <div class="w-16 h-16 rounded-2xl sport-tile flex items-center justify-center text-4xl border border-royal-400/20">${sport.emoji}</div>
+        <div>
+          <div class="text-2xl font-black tracking-tight">${sport.name}</div>
+          <div class="text-sm text-royal-300/80 font-semibold">${r.format} · ${gender}</div>
+        </div>
+      </div>
+
+      <div class="mt-5 glass rounded-2xl p-4 grid grid-cols-2 gap-4">
+        ${detailRow(iconClock, 'When', formatWhen(r.date))}
+        ${detailRow(iconPin,   'Where', `${r.location.label}<div class="text-xs text-royal-300/70 font-normal mt-0.5">${dist} km from you</div>`)}
+        ${detailRow(iconStar,  'Min skill', renderStarsSmall(r.minSkill, true))}
+        ${detailRow(iconDollar,'Payment', r.payment > 0 ? `$${r.payment}` : 'Friendly — $0')}
+      </div>
+
+      ${r.notes ? `
+        <div class="mt-3 glass rounded-2xl p-4">
+          <div class="text-[10px] uppercase tracking-wider text-royal-300/60 font-bold mb-1">Manager's notes</div>
+          <div class="text-sm text-royal-100/95">${escapeHtml(r.notes)}</div>
+        </div>` : ''}
+
+      <!-- Map -->
+      <div class="mt-3 rounded-2xl overflow-hidden border border-royal-400/15">
+        <div class="map h-40 relative">
+          <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 map-pin"></div>
+          <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2 text-xs">
+            <div class="px-2.5 py-1 rounded-full bg-royal-950/70 backdrop-blur font-semibold truncate">${r.location.label}</div>
+            <div class="px-2.5 py-1 rounded-full bg-royal-950/70 backdrop-blur font-semibold whitespace-nowrap">${dist} km</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manager card -->
+      <div class="mt-3 glass rounded-2xl p-4">
+        <div class="text-[10px] uppercase tracking-wider text-royal-300/60 font-bold mb-2">Posted by</div>
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold"
+               style="background: linear-gradient(135deg, ${mgr.color}, ${mgr.color}66);">${mgr.initials}</div>
+          <div class="flex-1 min-w-0">
+            <div class="font-bold text-[15px]">${mgr.name}</div>
+            <div class="flex items-center gap-2 text-xs text-royal-300/80 mt-0.5">
+              ${mgrSummary
+                ? `${renderStarsSmall(mgrSummary.sportsmanship||0)}<span class="font-semibold">${(mgrSummary.sportsmanship||0).toFixed(1)}</span><span class="text-royal-300/50">·</span><span>${mgrSummary.count} ${mgrSummary.count===1?'rating':'ratings'}</span>`
+                : 'New manager'}
+            </div>
+          </div>
+        </div>
+        ${mgr.bio ? `<p class="text-xs text-royal-300/70 mt-2.5 leading-relaxed">"${escapeHtml(mgr.bio)}"</p>` : ''}
+      </div>
+
+      <!-- Money disclaimer when payment offered -->
+      ${r.payment > 0 ? `
+        <div class="mt-3 rounded-2xl bg-royal-900/60 border border-royal-400/20 p-3 flex items-start gap-2 text-xs text-royal-200/80">
+          ${iconShield('w-4 h-4 mt-0.5 text-royal-300')}
+          <div><span class="font-bold text-white">No money flows through Free Agent.</span> The $${r.payment} is paid directly between you and ${mgr.name.split(' ')[0]} — cash or your preferred app.</div>
+        </div>` : ''}
+
+      <!-- Action -->
+      <div class="mt-5">
+        ${claimedByMe ? `
+          <div class="glass-strong rounded-2xl p-4 text-center">
+            <div class="text-live font-bold mb-1 flex items-center justify-center gap-1">${iconCheck('w-4 h-4')} You claimed this game</div>
+            <div class="text-xs text-royal-200/80 mb-3">Coordinate with ${mgr.name.split(' ')[0]} — meet at the venue.</div>
+            <button data-action="open-thread" data-request-id="${r.id}"
+                    class="w-full h-12 rounded-xl bg-white text-royal-900 font-bold tap">Message ${mgr.name.split(' ')[0]}</button>
+            <button data-action="cancel-claim" data-request-id="${r.id}"
+                    class="mt-2 text-xs text-royal-300/60 tap">Cancel claim</button>
+          </div>
+        ` : !isOpen ? `
+          <div class="glass rounded-2xl p-4 text-center text-royal-300/70 text-sm">This game is no longer open.</div>
+        ` : `
+          <button data-action="claim-request" data-request-id="${r.id}"
+                  class="w-full h-14 rounded-2xl bg-gradient-to-r from-royal-300 via-royal-400 to-royal-500 text-royal-950 font-black text-base tap shadow-glow-gold">
+            CLAIM THIS GAME
+          </button>
+          <div class="mt-2 text-center text-[11px] text-royal-300/60">You'll be matched with ${mgr.name.split(' ')[0]} and a message thread will open.</div>
+        `}
+      </div>
+    </section>
+  </main>
+  `;
+}
+
+function detailRow(iconFn, label, value) {
+  return `
+  <div>
+    <div class="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-royal-300/60 font-bold mb-1">
+      ${iconFn('w-3.5 h-3.5')} ${label}
+    </div>
+    <div class="text-sm font-semibold">${value}</div>
+  </div>
+  `;
+}
+
+// ---------- Manager Home ----------
+function renderManagerHome() {
+  const u = me();
+  const mine = state.data.requests
+    .filter(r => r.managerId === u.id)
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+  const open    = mine.filter(r => r.status === 'open');
+  const claimed = mine.filter(r => r.status === 'claimed');
+  const past    = mine.filter(r => r.status === 'completed' || new Date(r.date) < now());
+
+  return `
+  <main class="px-5 pt-2 animate-fade-in">
+    <div class="mb-4">
+      <h1 class="text-2xl font-black tracking-tight">Your games</h1>
+      <p class="text-sm text-royal-300/80 mt-0.5">${open.length} open · ${claimed.length} claimed · ${past.length} past</p>
+    </div>
+
+    ${open.length === 0 && claimed.length === 0 && past.length === 0 ? `
+      <div class="glass rounded-2xl p-6 text-center mt-2">
+        <div class="text-4xl mb-3">📋</div>
+        <div class="font-bold mb-1">No games yet</div>
+        <p class="text-sm text-royal-300/70 mb-4">Need a fill-in tonight? Post a request — qualifying players nearby will see it instantly.</p>
+        <button data-action="open-screen" data-screen="new-request"
+                class="px-5 h-11 rounded-xl bg-white text-royal-900 font-bold tap">Post your first game</button>
+      </div>
+    ` : ''}
+
+    ${open.length ? `
+      <section class="mb-5">
+        <div class="flex items-center justify-between mb-2.5">
+          <h2 class="text-xs uppercase tracking-wider text-royal-300/70 font-bold">Open · waiting on a claim</h2>
+        </div>
+        <div class="flex flex-col gap-3">
+          ${open.map(r => renderManagerCard(r)).join('')}
+        </div>
+      </section>` : ''}
+
+    ${claimed.length ? `
+      <section class="mb-5">
+        <h2 class="text-xs uppercase tracking-wider text-royal-300/70 font-bold mb-2.5">Claimed</h2>
+        <div class="flex flex-col gap-3">
+          ${claimed.map(r => renderManagerCard(r)).join('')}
+        </div>
+      </section>` : ''}
+
+    ${past.length ? `
+      <section class="mb-5">
+        <h2 class="text-xs uppercase tracking-wider text-royal-300/70 font-bold mb-2.5">Past</h2>
+        <div class="flex flex-col gap-3">
+          ${past.map(r => renderManagerCard(r)).join('')}
+        </div>
+      </section>` : ''}
+
+  </main>
+  `;
+}
+
+function renderManagerCard(r) {
+  const sport = SPORT_MAP[r.sport];
+  const urg = urgencyOf(r.date);
+  const claimer = r.claimedBy ? getUser(r.claimedBy) : null;
+  const past = new Date(r.date) < now();
+  const statusPill =
+    r.status === 'open'      ? `<div class="text-[10px] font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-0.5 rounded-full">Waiting</div>` :
+    r.status === 'claimed'   ? `<div class="text-[10px] font-bold uppercase tracking-wider text-live bg-live/10 px-2 py-0.5 rounded-full">Claimed</div>` :
+                               `<div class="text-[10px] font-bold uppercase tracking-wider text-royal-300/70 bg-white/5 px-2 py-0.5 rounded-full">Past</div>`;
+
+  // pending rating
+  const u = me();
+  const alreadyRated = state.data.ratings.some(rt => rt.requestId === r.id && rt.fromId === u.id);
+  const needsRating = past && claimer && !alreadyRated;
+
+  return `
+  <button data-action="open-request" data-request-id="${r.id}"
+          class="text-left w-full glass rounded-2xl p-4 tap relative">
+    <div class="flex items-start gap-3">
+      <div class="w-12 h-12 rounded-2xl sport-tile flex items-center justify-center text-2xl border border-royal-400/20 shrink-0">${sport.emoji}</div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center justify-between gap-2">
+          <div class="font-bold text-[15px] truncate">${sport.name} · ${r.format}</div>
+          ${statusPill}
+        </div>
+        <div class="text-[13px] text-royal-200/90 mt-0.5 font-semibold">${formatWhen(r.date)}</div>
+        <div class="flex items-center gap-1.5 text-xs text-royal-300/70 mt-1">
+          ${iconPin('w-3.5 h-3.5')} <span class="truncate">${r.location.label}</span>
+        </div>
+      </div>
+    </div>
+    ${claimer ? `
+      <div class="mt-3 pt-3 border-t border-royal-400/10 flex items-center gap-2">
+        <div class="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold"
+             style="background: linear-gradient(135deg, ${claimer.color}, ${claimer.color}88);">${claimer.initials}</div>
+        <div class="text-xs">
+          <span class="text-royal-300/70">Claimed by</span> <span class="font-bold">${claimer.name}</span>
+        </div>
+        ${needsRating ? `<div class="ml-auto text-[10px] font-bold uppercase tracking-wider text-accent">Needs rating →</div>` : ''}
+      </div>` : ''}
+    ${r.status === 'open' && !past && urg.key !== 'planned' ? `
+      <div class="mt-3 pt-3 border-t border-royal-400/10 text-xs">
+        <span class="${urg.color} font-bold">${urg.label}</span>
+        <span class="text-royal-300/60"> · qualifying players notified</span>
+      </div>` : ''}
+  </button>
+  `;
+}
+
+// ---------- New request form ----------
+function renderNewRequest() {
+  const d = state.draftRequest;
+  const sport = d.sport ? SPORT_MAP[d.sport] : null;
+  return `
+  <main class="px-5 pt-2 animate-fade-in">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h1 class="text-2xl font-black tracking-tight">Post a game</h1>
+        <p class="text-sm text-royal-300/80 mt-0.5">Qualifying players nearby will see it immediately.</p>
+      </div>
+      <button data-action="go-back" class="text-royal-300/70 text-sm font-semibold tap">Cancel</button>
+    </div>
+
+    <!-- Sport -->
+    <section class="mb-4">
+      <label class="text-[10px] uppercase tracking-wider text-royal-300/70 font-bold mb-2 block">Sport</label>
+      <div class="grid grid-cols-3 gap-2">
+        ${SPORTS.map(s => `
+          <button data-action="draft-set" data-key="sport" data-value="${s.id}"
+                  class="sport-tile rounded-2xl p-3 border ${d.sport===s.id ? 'on' : 'border-royal-400/20'} flex flex-col items-center gap-1.5 tap">
+            <div class="text-2xl">${s.emoji}</div>
+            <div class="text-[11px] font-bold text-center leading-tight">${s.name}</div>
+          </button>
+        `).join('')}
+      </div>
+    </section>
+
+    <!-- Format -->
+    ${sport ? `
+      <section class="mb-4">
+        <label class="text-[10px] uppercase tracking-wider text-royal-300/70 font-bold mb-2 block">Format</label>
+        <div class="flex flex-wrap gap-2">
+          ${sport.formats.map(f => `
+            <button data-action="draft-set" data-key="format" data-value="${f}"
+                    class="px-4 py-2 rounded-full text-sm font-bold tap ${d.format===f ? 'chip-on' : 'chip text-royal-200'}">${f}</button>
+          `).join('')}
+        </div>
+      </section>
+    ` : ''}
+
+    <!-- When -->
+    <section class="mb-4">
+      <label class="text-[10px] uppercase tracking-wider text-royal-300/70 font-bold mb-2 block">When</label>
+      <div class="flex gap-2 mb-2">
+        <button data-action="draft-set-when" data-when="tonight"
+                class="flex-1 py-2 rounded-xl chip text-sm font-bold tap">Tonight 8 PM</button>
+        <button data-action="draft-set-when" data-when="tomorrow"
+                class="flex-1 py-2 rounded-xl chip text-sm font-bold tap">Tomorrow 7 PM</button>
+        <button data-action="draft-set-when" data-when="weekend"
+                class="flex-1 py-2 rounded-xl chip text-sm font-bold tap">Sat 11 AM</button>
+      </div>
+      <input type="datetime-local"
+             data-action="draft-input" data-key="date"
+             value="${d.date || ''}"
+             class="w-full bg-royal-900/60 border border-royal-400/20 rounded-xl px-3 h-12 text-white font-semibold focus:outline-none focus:border-royal-400/60" />
+    </section>
+
+    <!-- Where -->
+    <section class="mb-4">
+      <label class="text-[10px] uppercase tracking-wider text-royal-300/70 font-bold mb-2 block">Where</label>
+      <div class="flex flex-wrap gap-1.5 mb-2">
+        ${['williamsburg','parkslope','lic','chelseaPiers','prospect'].map(k => `
+          <button data-action="draft-set-loc" data-loc="${k}"
+                  class="text-xs px-3 py-1.5 rounded-full font-semibold tap ${d.locKey===k ? 'chip-on' : 'chip text-royal-300/80'}">${LOC[k].label.split(',')[0]}</button>
+        `).join('')}
+      </div>
+      <input type="text" data-action="draft-input" data-key="locLabel"
+             value="${escapeHtml(d.locLabel || '')}"
+             placeholder="Or type a venue or neighborhood"
+             class="w-full bg-royal-900/60 border border-royal-400/20 rounded-xl px-3 h-12 text-white font-semibold placeholder:text-royal-300/40 focus:outline-none focus:border-royal-400/60" />
+    </section>
+
+    <!-- Who -->
+    <section class="mb-4">
+      <label class="text-[10px] uppercase tracking-wider text-royal-300/70 font-bold mb-2 block">Who can claim</label>
+      <div class="flex flex-wrap gap-1.5 mb-3">
+        ${GENDERS.map(g => `
+          <button data-action="draft-set" data-key="genderReq" data-value="${g.id}"
+                  class="px-3 py-1.5 rounded-full text-xs font-bold tap ${d.genderReq===g.id ? 'chip-on' : 'chip text-royal-300/80'}">${g.name}</button>
+        `).join('')}
+      </div>
+      <div class="flex items-center justify-between">
+        <span class="text-sm font-semibold">Minimum skill</span>
+        <div class="star-input flex items-center gap-1">
+          ${[1,2,3,4,5].map(n => `
+            <button data-action="draft-set" data-key="minSkill" data-value="${n}"
+                    class="w-7 h-7 flex items-center justify-center tap">
+              ${iconStarSolid(`w-5 h-5 ${d.minSkill >= n ? 'text-accent' : 'text-royal-400/30'}`)}
+            </button>
+          `).join('')}
+        </div>
+      </div>
+    </section>
+
+    <!-- Payment -->
+    <section class="mb-4">
+      <label class="text-[10px] uppercase tracking-wider text-royal-300/70 font-bold mb-2 block flex items-center justify-between">
+        <span>Payment to player (optional)</span>
+        <span class="text-royal-300/50 normal-case tracking-normal">$0 = friendly</span>
+      </label>
+      <div class="flex items-center gap-3">
+        <span class="text-2xl font-black text-accent">$</span>
+        <input type="number" min="0" step="5" data-action="draft-input" data-key="payment"
+               value="${d.payment || 0}"
+               class="flex-1 bg-royal-900/60 border border-royal-400/20 rounded-xl px-3 h-12 text-white text-xl font-bold focus:outline-none focus:border-royal-400/60" />
+        <div class="flex gap-1">
+          ${[0,10,20,40].map(v => `
+            <button data-action="draft-set" data-key="payment" data-value="${v}"
+                    class="px-2 py-1.5 rounded-lg text-xs font-bold tap ${(+d.payment||0)===v ? 'chip-on' : 'chip text-royal-300/80'}">${v?'$'+v:'$0'}</button>
+          `).join('')}
+        </div>
+      </div>
+      <div class="mt-2 flex items-start gap-1.5 text-[11px] text-royal-300/60">
+        ${iconShield('w-3.5 h-3.5 mt-0.5')}<span>No money flows through Free Agent. You'll settle directly with the player.</span>
+      </div>
+    </section>
+
+    <!-- Notes -->
+    <section class="mb-5">
+      <label class="text-[10px] uppercase tracking-wider text-royal-300/70 font-bold mb-2 block">Notes (optional)</label>
+      <textarea data-action="draft-input" data-key="notes" rows="3"
+                placeholder="e.g. Bring a dark jersey, locker 4, etc."
+                class="w-full bg-royal-900/60 border border-royal-400/20 rounded-xl px-3 py-3 text-white text-sm placeholder:text-royal-300/40 focus:outline-none focus:border-royal-400/60 resize-none">${escapeHtml(d.notes || '')}</textarea>
+    </section>
+
+    <button data-action="submit-request"
+            class="w-full h-14 rounded-2xl bg-gradient-to-r from-royal-300 via-royal-400 to-royal-500 text-royal-950 font-black text-base tap shadow-glow-gold">
+      POST GAME
+    </button>
+    <div class="mt-2 text-center text-[11px] text-royal-300/60 mb-2">Qualifying players nearby will be notified instantly.</div>
+  </main>
+  `;
+}
+
+// ---------- Manager request detail ----------
+function renderManagerRequestDetail() {
+  const r = getRequest(state.params.requestId);
+  if (!r) return renderError('Request not found.');
+  const sport = SPORT_MAP[r.sport];
+  const urg = urgencyOf(r.date);
+  const claimer = r.claimedBy ? getUser(r.claimedBy) : null;
+  const past = new Date(r.date) < now();
+  const u = me();
+  const alreadyRated = state.data.ratings.some(rt => rt.requestId === r.id && rt.fromId === u.id);
+  const gender = GENDERS.find(g => g.id === r.genderReq).name;
+  const dist = claimer ? distanceKm(claimer.location, r.location) : null;
+
+  return `
+  <main class="animate-fade-in">
+    <div class="px-5 pt-2">
+      <button data-action="go-back" class="text-royal-300/70 text-sm font-semibold flex items-center gap-1 tap">${iconBack('w-4 h-4')} Back</button>
+    </div>
+
+    <section class="px-5 pt-3">
+      <div class="flex items-center gap-3">
+        <div class="w-14 h-14 rounded-2xl sport-tile flex items-center justify-center text-3xl border border-royal-400/20">${sport.emoji}</div>
+        <div>
+          <div class="text-xl font-black tracking-tight">${sport.name} · ${r.format}</div>
+          <div class="text-sm text-royal-300/80 font-semibold">${formatWhen(r.date)}</div>
+        </div>
+      </div>
+
+      <div class="mt-4 glass rounded-2xl p-4 grid grid-cols-2 gap-4 text-sm">
+        ${detailRow(iconPin,    'Where', r.location.label)}
+        ${detailRow(iconUserSm, 'Who',   gender)}
+        ${detailRow(iconStar,   'Min skill', renderStarsSmall(r.minSkill, true))}
+        ${detailRow(iconDollar, 'Payment', r.payment > 0 ? `$${r.payment}` : '—')}
+      </div>
+
+      ${r.notes ? `<div class="mt-3 glass rounded-2xl p-4 text-sm">${escapeHtml(r.notes)}</div>` : ''}
+
+      <!-- Claim status -->
+      <div class="mt-4">
+        ${claimer ? `
+          <div class="glass-strong rounded-2xl p-4">
+            <div class="text-[10px] uppercase tracking-wider text-royal-300/70 font-bold mb-2">Claimed by</div>
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold"
+                   style="background: linear-gradient(135deg, ${claimer.color}, ${claimer.color}88);">${claimer.initials}</div>
+              <div class="flex-1 min-w-0">
+                <div class="font-bold">${claimer.name}</div>
+                <div class="text-xs text-royal-300/70 mt-0.5">
+                  ${(() => {
+                    const sk = claimer.sports.find(s => s.sport === r.sport);
+                    return sk ? `${sport.name} ${renderStarsSmall(sk.skill, true)}` : '';
+                  })()}
+                  · ${dist} km away
+                </div>
+              </div>
+            </div>
+            <div class="mt-3 flex gap-2">
+              <button data-action="open-thread" data-request-id="${r.id}"
+                      class="flex-1 h-11 rounded-xl bg-white text-royal-900 font-bold tap text-sm">Message ${claimer.name.split(' ')[0]}</button>
+              ${past && !alreadyRated ? `
+                <button data-action="rate-prompt" data-request-id="${r.id}"
+                        class="flex-1 h-11 rounded-xl bg-accent text-royal-950 font-bold tap text-sm">Rate player</button>
+              ` : ''}
+            </div>
+            ${past && alreadyRated ? `<div class="mt-3 text-xs text-live font-semibold flex items-center gap-1">${iconCheck('w-4 h-4')} You rated this player</div>` : ''}
+          </div>
+        ` : `
+          <div class="glass rounded-2xl p-4 text-center">
+            <div class="text-sm font-bold mb-1 ${urg.color}">${urg.label}</div>
+            <p class="text-xs text-royal-300/70">Waiting on a qualifying player to claim.</p>
+            <button data-action="delete-request" data-request-id="${r.id}"
+                    class="mt-3 text-xs text-urgent font-semibold tap">Delete request</button>
+          </div>
+        `}
+      </div>
+    </section>
+  </main>
+  `;
+}
+
+// ---------- Messages list ----------
+function renderMessagesList() {
+  const u = me();
+  const threads = threadsForUser(u.id);
+
+  return `
+  <main class="px-5 pt-2 animate-fade-in">
+    <h1 class="text-2xl font-black tracking-tight mb-1">Messages</h1>
+    <p class="text-sm text-royal-300/80 mb-4">Threads open automatically when a game is claimed.</p>
+
+    ${threads.length === 0 ? renderEmpty('No messages yet', 'When you claim a game (or someone claims yours), a message thread will open here.') : ''}
+
+    <div class="flex flex-col gap-2">
+      ${threads.map(t => {
+        const sport = SPORT_MAP[t.request.sport];
+        const lastFromMe = t.lastMessage && t.lastMessage.fromId === u.id;
+        const last = t.lastMessage ? t.lastMessage.text : `Tap to start chatting with ${t.other.name.split(' ')[0]}`;
+        const unread = t.lastMessage && t.lastMessage.fromId !== u.id;
+        return `
+        <button data-action="open-thread" data-request-id="${t.request.id}"
+                class="text-left w-full glass rounded-2xl p-3.5 flex items-center gap-3 tap">
+          <div class="relative">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold"
+                 style="background: linear-gradient(135deg, ${t.other.color}, ${t.other.color}66);">${t.other.initials}</div>
+            <div class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-royal-900 border-2 border-royal-850 flex items-center justify-center text-xs">${sport.emoji}</div>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-2">
+              <div class="font-bold truncate">${t.other.name}</div>
+              ${t.lastMessage ? `<div class="text-[10px] text-royal-300/60 shrink-0">${timeAgo(t.lastMessage.ts)}</div>` : ''}
+            </div>
+            <div class="text-xs text-royal-300/70 truncate">${lastFromMe ? 'You: ' : ''}${escapeHtml(last)}</div>
+            <div class="text-[10px] text-royal-300/50 mt-0.5">${sport.name} · ${formatWhen(t.request.date)}</div>
+          </div>
+          ${unread ? '<span class="w-2 h-2 rounded-full bg-royal-400 shrink-0"></span>' : ''}
+        </button>
+        `;
+      }).join('')}
+    </div>
+  </main>
+  `;
+}
+
+// ---------- Thread ----------
+function renderThread() {
+  const r = getRequest(state.params.requestId);
+  if (!r) return renderError('Thread not found.');
+  const u = me();
+  const otherId = r.managerId === u.id ? r.claimedBy : r.managerId;
+  const other = getUser(otherId);
+  const sport = SPORT_MAP[r.sport];
+  const msgs = threadMessages(r.id);
+  const past = new Date(r.date) < now();
+  const alreadyRated = state.data.ratings.some(rt => rt.requestId === r.id && rt.fromId === u.id);
+
+  return `
+  <main class="flex flex-col h-[100dvh] animate-fade-in">
+    <div class="px-5 pt-2 pb-3 border-b border-royal-400/10 flex items-center gap-3">
+      <button data-action="go-back" class="text-royal-300/70 tap p-1 -ml-1">${iconBack('w-5 h-5')}</button>
+      <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold"
+           style="background: linear-gradient(135deg, ${other.color}, ${other.color}66);">${other.initials}</div>
+      <div class="flex-1 min-w-0">
+        <div class="font-bold truncate">${other.name}</div>
+        <div class="text-[11px] text-royal-300/70 truncate">${sport.emoji} ${sport.name} · ${formatWhen(r.date)}</div>
+      </div>
+      <button data-action="open-request" data-request-id="${r.id}" class="text-xs text-royal-300/80 font-semibold tap">Details</button>
+    </div>
+
+    <div class="flex-1 overflow-y-auto scroll-area px-5 py-4 flex flex-col gap-2.5" id="thread-scroll">
+      ${msgs.length === 0 ? `
+        <div class="text-center text-xs text-royal-300/60 mt-6">Send the first message to ${other.name.split(' ')[0]}.</div>
+      ` : msgs.map((m, i) => {
+        const mine = m.fromId === u.id;
+        const prevSame = i > 0 && msgs[i-1].fromId === m.fromId;
+        return `
+        <div class="flex ${mine ? 'justify-end' : 'justify-start'} ${prevSame ? '-mt-1' : ''}">
+          <div class="${mine ? 'bubble-me text-white' : 'bubble-you text-royal-100/95'} max-w-[78%] px-3.5 py-2 rounded-2xl text-sm leading-relaxed">
+            ${escapeHtml(m.text)}
+            <div class="text-[9px] opacity-60 mt-0.5 text-right">${new Date(m.ts).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'})}</div>
+          </div>
+        </div>
+        `;
+      }).join('')}
+
+      ${past && !alreadyRated ? `
+        <div class="mt-3 mx-auto glass rounded-2xl p-3 text-center max-w-[90%]">
+          <div class="text-xs font-bold mb-2">Game's done — rate ${other.name.split(' ')[0]}?</div>
+          <button data-action="rate-prompt" data-request-id="${r.id}"
+                  class="px-4 h-9 rounded-xl bg-accent text-royal-950 text-xs font-bold tap">Leave a rating</button>
+        </div>
+      ` : ''}
+    </div>
+
+    <form data-action="send-message" data-request-id="${r.id}"
+          class="px-3 py-3 border-t border-royal-400/10 flex items-center gap-2 bg-royal-950/80 backdrop-blur">
+      <input type="text" name="text" autocomplete="off"
+             placeholder="Message ${other.name.split(' ')[0]}…"
+             class="flex-1 h-11 bg-royal-900/60 border border-royal-400/20 rounded-full px-4 text-white text-sm placeholder:text-royal-300/40 focus:outline-none focus:border-royal-400/60" />
+      <button type="submit" class="h-11 w-11 rounded-full bg-white text-royal-900 tap flex items-center justify-center">
+        ${iconSend('w-4 h-4')}
+      </button>
+    </form>
+  </main>
+  `;
+}
+
+// ---------- Profile ----------
+function renderProfile() {
+  const u = me();
+  const myRatings = state.data.ratings
+    .filter(r => r.targetId === u.id)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const visibleRatings = myRatings.filter(r => canPlayerSeeRating(r, u.id));
+  const hiddenCount = myRatings.length - visibleRatings.length;
+  const summary = userRatingSummary(u);
+  const pending = pendingRatings(u.id);
+  const gameCount = state.data.requests.filter(r =>
+    (r.claimedBy === u.id || r.managerId === u.id) && new Date(r.date) < now()
+  ).length;
+
+  return `
+  <main class="animate-fade-in">
+    <div class="px-5 pt-2">
+      <button data-action="go-back" class="text-royal-300/70 text-sm font-semibold tap">${iconBack('w-4 h-4 inline mr-1')}Back</button>
+    </div>
+
+    <section class="px-5 pt-2 pb-1">
+      <div class="flex items-center gap-4">
+        <div class="w-20 h-20 rounded-2xl flex items-center justify-center text-2xl font-black ring-2 ring-royal-400/30"
+             style="background: linear-gradient(135deg, ${u.color}, ${u.color}66);">${u.initials}</div>
+        <div class="flex-1">
+          <div class="text-xl font-black">${u.name}</div>
+          <div class="text-xs text-royal-300/80 flex items-center gap-1 mt-0.5">${iconPin('w-3.5 h-3.5')} ${u.location.label}</div>
+          ${summary ? `
+            <div class="flex items-center gap-3 mt-2 text-xs">
+              <div class="flex items-center gap-1">${iconStarSolid('w-3.5 h-3.5 text-accent')}<span class="font-bold">${(summary.skill || 0).toFixed(1)}</span><span class="text-royal-300/60">skill</span></div>
+              <div class="flex items-center gap-1">${iconHeart('w-3.5 h-3.5 text-urgent')}<span class="font-bold">${(summary.sportsmanship || 0).toFixed(1)}</span><span class="text-royal-300/60">sport.</span></div>
+              <div class="text-royal-300/60">${gameCount} game${gameCount===1?'':'s'}</div>
+            </div>` : '<div class="text-xs text-royal-300/60 mt-2">No ratings yet — your first game will fix that.</div>'}
+        </div>
+      </div>
+      ${u.bio ? `<p class="text-sm text-royal-200/90 mt-3">"${escapeHtml(u.bio)}"</p>` : ''}
+    </section>
+
+    <!-- Pending ratings -->
+    ${pending.length ? `
+      <section class="px-5 mt-4">
+        <h2 class="text-xs uppercase tracking-wider text-royal-300/70 font-bold mb-2">Pending ratings</h2>
+        <div class="flex flex-col gap-2">
+          ${pending.map(p => {
+            const other = getUser(p.otherId);
+            const sport = SPORT_MAP[p.request.sport];
+            return `
+            <button data-action="rate-prompt" data-request-id="${p.request.id}"
+                    class="text-left w-full glass rounded-2xl p-3 flex items-center gap-3 tap">
+              <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold"
+                   style="background: linear-gradient(135deg, ${other.color}, ${other.color}66);">${other.initials}</div>
+              <div class="flex-1 min-w-0">
+                <div class="font-bold text-sm truncate">Rate ${other.name}</div>
+                <div class="text-xs text-royal-300/70">${sport.emoji} ${sport.name} · ${formatWhen(p.request.date)}</div>
+              </div>
+              <div class="text-xs font-bold text-accent">RATE →</div>
+            </button>`;
+          }).join('')}
+        </div>
+      </section>` : ''}
+
+    <!-- Sports -->
+    <section class="px-5 mt-5">
+      <h2 class="text-xs uppercase tracking-wider text-royal-300/70 font-bold mb-2">Your sports</h2>
+      <div class="glass rounded-2xl p-2 flex flex-col">
+        ${u.sports.map((s, i) => {
+          const sport = SPORT_MAP[s.sport];
+          return `
+          <div class="flex items-center gap-3 p-2 ${i < u.sports.length - 1 ? 'border-b border-royal-400/10' : ''}">
+            <div class="w-9 h-9 rounded-xl sport-tile border border-royal-400/20 flex items-center justify-center text-lg">${sport.emoji}</div>
+            <div class="flex-1 text-sm font-semibold">${sport.name}</div>
+            <div class="star-input flex items-center gap-0.5">
+              ${[1,2,3,4,5].map(n => `
+                <button data-action="set-sport-skill" data-sport="${s.sport}" data-skill="${n}"
+                        class="w-6 h-6 flex items-center justify-center tap">
+                  ${iconStarSolid(`w-4 h-4 ${s.skill >= n ? 'text-accent' : 'text-royal-400/30'}`)}
+                </button>`).join('')}
+            </div>
+            <button data-action="remove-sport" data-sport="${s.sport}"
+                    class="ml-1 text-royal-300/40 hover:text-urgent tap p-1">${iconTrash('w-3.5 h-3.5')}</button>
+          </div>`;
+        }).join('')}
+      </div>
+      ${(() => {
+        const has = new Set(u.sports.map(s => s.sport));
+        const missing = SPORTS.filter(s => !has.has(s.id));
+        return missing.length ? `
+          <div class="mt-2 flex flex-wrap gap-1.5">
+            ${missing.map(s => `
+              <button data-action="add-sport" data-sport="${s.id}"
+                      class="text-xs chip text-royal-300/80 px-3 py-1.5 rounded-full font-semibold tap">+ ${s.emoji} ${s.name}</button>`).join('')}
+          </div>` : '';
+      })()}
+    </section>
+
+    <!-- Proximity -->
+    <section class="px-5 mt-5">
+      <h2 class="text-xs uppercase tracking-wider text-royal-300/70 font-bold mb-2">Travel preference</h2>
+      <div class="glass rounded-2xl p-4">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-semibold">Show games within</span>
+          <span class="text-base font-black text-royal-300" data-proximity-display>${u.proximityKm} km</span>
+        </div>
+        <input type="range" min="3" max="50" step="1" value="${u.proximityKm}"
+               data-action="set-proximity"
+               class="w-full accent-royal-400" />
+        <div class="flex justify-between text-[10px] text-royal-300/50 mt-1"><span>3 km</span><span>50 km</span></div>
+      </div>
+    </section>
+
+    <!-- Ratings -->
+    <section class="px-5 mt-5">
+      <h2 class="text-xs uppercase tracking-wider text-royal-300/70 font-bold mb-2">What managers said about you</h2>
+      ${visibleRatings.length === 0 && hiddenCount === 0 ? `
+        <div class="glass rounded-2xl p-4 text-sm text-royal-300/70">No reviews yet — your first claimed game will start your reputation.</div>
+      ` : ''}
+      <div class="flex flex-col gap-2">
+        ${visibleRatings.map(rt => {
+          const from = getUser(rt.fromId);
+          return `
+          <div class="glass rounded-2xl p-4">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold"
+                   style="background: linear-gradient(135deg, ${from.color}, ${from.color}66);">${from.initials}</div>
+              <div class="flex-1 min-w-0">
+                <div class="font-bold text-sm">${from.name}</div>
+                <div class="text-[10px] text-royal-300/60">${new Date(rt.createdAt).toLocaleDateString([], {month:'short', day:'numeric', year:'numeric'})}</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-4 mt-3 text-xs">
+              ${rt.skill != null ? `<div class="flex items-center gap-1">${iconStarSolid('w-3.5 h-3.5 text-accent')}<span class="font-bold">${rt.skill}</span><span class="text-royal-300/60">skill</span></div>` : ''}
+              ${rt.sportsmanship != null ? `<div class="flex items-center gap-1">${iconHeart('w-3.5 h-3.5 text-urgent')}<span class="font-bold">${rt.sportsmanship}</span><span class="text-royal-300/60">sport.</span></div>` : ''}
+            </div>
+            ${rt.publicNote ? `<p class="text-sm text-royal-100/90 mt-2 leading-relaxed">"${escapeHtml(rt.publicNote)}"</p>` : ''}
+            ${rt.privateNote && rt.targetId === u.id ? `
+              <div class="mt-2 pt-2 border-t border-royal-400/10">
+                <div class="text-[10px] uppercase tracking-wider text-royal-300/50 font-bold mb-0.5">Private — only you can see</div>
+                <p class="text-sm text-royal-200/80 italic">"${escapeHtml(rt.privateNote)}"</p>
+              </div>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+      ${hiddenCount > 0 ? `
+        <div class="mt-2 glass rounded-2xl p-4 flex items-start gap-3">
+          <div class="w-8 h-8 rounded-full bg-royal-400/10 flex items-center justify-center shrink-0">${iconLock('w-4 h-4 text-royal-300')}</div>
+          <div class="text-xs text-royal-200/90">
+            <span class="font-bold text-white">${hiddenCount} hidden review${hiddenCount>1?'s':''}.</span>
+            Like Airbnb, you can see what a manager said about you only after you've rated them. Head to <button data-action="open-screen" data-screen="profile" class="underline font-bold">pending ratings</button> to unlock.
+          </div>
+        </div>` : ''}
+    </section>
+
+    <div class="px-5 mt-6 text-center text-[11px] text-royal-300/50 mb-4">
+      Free Agent · v1 demo · data saved to your browser
+    </div>
+  </main>
+  `;
+}
+
+// ---------- Rating modal ----------
+function renderRatingModal() {
+  const d = state.draftRating;
+  if (!d) return '';
+  const r = getRequest(d.requestId);
+  if (!r) return '';
+  const u = me();
+  const otherId = r.managerId === u.id ? r.claimedBy : r.managerId;
+  const other = getUser(otherId);
+  const isManagerRatingPlayer = r.managerId === u.id;
+  const sport = SPORT_MAP[r.sport];
+
+  return `
+  <div class="fixed inset-0 z-[70] scrim flex items-end sm:items-center justify-center animate-fade-in">
+    <div class="w-full sm:max-w-md bg-royal-850 sm:rounded-3xl rounded-t-3xl border-t sm:border border-royal-400/20 p-5 animate-slide-up max-h-[90dvh] overflow-y-auto scroll-area">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-black">Rate ${other.name.split(' ')[0]}</h2>
+        <button data-action="close-rating" class="text-royal-300/70 tap p-1">${iconClose('w-5 h-5')}</button>
+      </div>
+
+      <div class="glass rounded-2xl p-3 flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold"
+             style="background: linear-gradient(135deg, ${other.color}, ${other.color}66);">${other.initials}</div>
+        <div class="flex-1 min-w-0">
+          <div class="font-bold text-sm">${other.name}</div>
+          <div class="text-[11px] text-royal-300/70">${sport.emoji} ${sport.name} · ${formatWhen(r.date)}</div>
+        </div>
+      </div>
+
+      ${isManagerRatingPlayer ? `
+        <div class="mb-4">
+          <label class="text-xs uppercase tracking-wider text-royal-300/70 font-bold mb-2 flex items-center gap-1">
+            ${iconStarSolid('w-3.5 h-3.5 text-accent')} Skill
+          </label>
+          <div class="star-input flex items-center gap-1.5">
+            ${[1,2,3,4,5].map(n => `
+              <button data-action="rating-set" data-key="skill" data-value="${n}"
+                      class="w-10 h-10 rounded-xl bg-royal-900/40 border border-royal-400/15 flex items-center justify-center tap">
+                ${iconStarSolid(`w-6 h-6 ${(d.skill||0)>=n ? 'text-accent' : 'text-royal-400/30'}`)}
+              </button>
+            `).join('')}
+          </div>
+        </div>` : ''}
+
+      <div class="mb-4">
+        <label class="text-xs uppercase tracking-wider text-royal-300/70 font-bold mb-2 flex items-center gap-1">
+          ${iconHeart('w-3.5 h-3.5 text-urgent')} Sportsmanship
+        </label>
+        <div class="star-input flex items-center gap-1.5">
+          ${[1,2,3,4,5].map(n => `
+            <button data-action="rating-set" data-key="sportsmanship" data-value="${n}"
+                    class="w-10 h-10 rounded-xl bg-royal-900/40 border border-royal-400/15 flex items-center justify-center tap">
+              ${iconHeart(`w-6 h-6 ${(d.sportsmanship||0)>=n ? 'text-urgent' : 'text-royal-400/30'}`)}
+            </button>
+          `).join('')}
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="text-xs uppercase tracking-wider text-royal-300/70 font-bold mb-1 block">Public note <span class="text-royal-300/40 normal-case tracking-normal">— optional, visible on their profile</span></label>
+        <textarea data-action="rating-input" data-key="publicNote" rows="2"
+                  placeholder="e.g. Great hands, showed up on time…"
+                  class="w-full bg-royal-900/60 border border-royal-400/20 rounded-xl px-3 py-2 text-sm placeholder:text-royal-300/40 focus:outline-none focus:border-royal-400/60 resize-none">${escapeHtml(d.publicNote||'')}</textarea>
+      </div>
+
+      <div class="mb-4">
+        <label class="text-xs uppercase tracking-wider text-royal-300/70 font-bold mb-1 block">Private note <span class="text-royal-300/40 normal-case tracking-normal">— only ${other.name.split(' ')[0]} sees it</span></label>
+        <textarea data-action="rating-input" data-key="privateNote" rows="2"
+                  placeholder="A private heads-up (optional)…"
+                  class="w-full bg-royal-900/60 border border-royal-400/20 rounded-xl px-3 py-2 text-sm placeholder:text-royal-300/40 focus:outline-none focus:border-royal-400/60 resize-none">${escapeHtml(d.privateNote||'')}</textarea>
+      </div>
+
+      <div class="rounded-xl bg-royal-900/40 border border-royal-400/10 p-3 mb-4 flex items-start gap-2 text-[11px] text-royal-200/80">
+        ${iconLock('w-3.5 h-3.5 mt-0.5 text-royal-300')}
+        <div>Like Airbnb, ratings stay hidden until both parties have submitted (or 14 days pass).</div>
+      </div>
+
+      <button data-action="submit-rating"
+              class="w-full h-12 rounded-xl bg-gradient-to-r from-royal-300 via-royal-400 to-royal-500 text-royal-950 font-black tap shadow-glow-gold">
+        SUBMIT RATING
+      </button>
+    </div>
+  </div>
+  `;
+}
+
+// ---------- Misc ----------
+function renderEmpty(title, sub) {
+  return `
+  <div class="glass rounded-2xl p-6 text-center my-2">
+    <div class="text-3xl mb-2">🪧</div>
+    <div class="font-bold">${title}</div>
+    <p class="text-xs text-royal-300/70 mt-1">${sub}</p>
+  </div>`;
+}
+function renderError(msg) {
+  return `<div class="px-5 py-6"><div class="glass rounded-2xl p-6 text-center text-sm text-urgent">${msg}</div><button data-action="go-back" class="mt-3 mx-auto block text-royal-300/80 tap">Back</button></div>`;
+}
+function renderStarsSmall(n, ofFive=false) {
+  const v = Number(n) || 0;
+  let html = '<span class="inline-flex items-center gap-px">';
+  for (let i = 1; i <= 5; i++) {
+    html += iconStarSolid(`w-3 h-3 ${v >= i ? 'text-accent' : 'text-royal-400/30'} inline`);
+  }
+  html += '</span>';
+  return ofFive ? html : html;
+}
+function renderStarsTiny(n) {
+  const v = Number(n) || 0;
+  let html = '';
+  for (let i = 1; i <= 5; i++) {
+    html += `<span class="${v >= i ? 'text-accent' : 'text-royal-400/30'}">★</span>`;
+  }
+  return html;
+}
+
+// ------------------------------------------------------------
+// Icons
+// ------------------------------------------------------------
+function iconSearch(c)   { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="${c}"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>`; }
+function iconChat(c)     { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="${c}" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 1 1-3.5-6.6L21 4l-1.4 3.5A8 8 0 0 1 21 12z"/></svg>`; }
+function iconUser(c)     { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="${c}" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>`; }
+function iconUserSm(c)   { return iconUser(c); }
+function iconList(c)     { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="${c}" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>`; }
+function iconPlus(c)     { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="${c}" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`; }
+function iconPin(c)      { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="${c}" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-7-7.5-7-13a7 7 0 0 1 14 0c0 5.5-7 13-7 13z"/><circle cx="12" cy="9" r="2.5"/></svg>`; }
+function iconClock(c)    { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="${c}" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`; }
+function iconStar(c)     { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="${c}" stroke-linejoin="round"><path d="m12 3 2.7 6.4 6.9.6-5.2 4.6 1.6 6.8L12 17.8 5.9 21.4l1.6-6.8L2.3 10l7-.6L12 3z"/></svg>`; }
+function iconStarSolid(c){ return `<svg viewBox="0 0 24 24" fill="currentColor" class="${c}"><path d="m12 17.3 6.2 3.7-1.7-7 5.5-4.7-7.2-.6L12 2 9.2 8.7 2 9.3l5.5 4.7-1.7 7L12 17.3z"/></svg>`; }
+function iconHeart(c)    { return `<svg viewBox="0 0 24 24" fill="currentColor" class="${c}"><path d="M12 21s-7-4.5-9.5-9C.7 8.4 3 5 6.3 5c2 0 3.4 1 4.7 2.5C12.3 6 13.7 5 15.7 5 19 5 21.3 8.4 21.5 12c-2.5 4.5-9.5 9-9.5 9z"/></svg>`; }
+function iconDollar(c)   { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="${c}" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M16 7H10a3 3 0 0 0 0 6h4a3 3 0 0 1 0 6H7"/></svg>`; }
+function iconShield(c)   { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="${c}" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V6l8-3z"/></svg>`; }
+function iconBack(c)     { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="${c}" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>`; }
+function iconClose(c)    { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="${c}" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>`; }
+function iconCheck(c)    { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="${c}" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`; }
+function iconLock(c)     { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="${c}" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>`; }
+function iconSend(c)     { return `<svg viewBox="0 0 24 24" fill="currentColor" class="${c}"><path d="M3.4 20.6 22 12 3.4 3.4 3 10l13 2-13 2z"/></svg>`; }
+function iconTrash(c)    { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="${c}" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14"/></svg>`; }
+
+// ------------------------------------------------------------
+// Actions
+// ------------------------------------------------------------
+const actions = {
+  'switch-view': (ds) => {
+    state.view = ds.view;
+    state.screen = ds.view === 'player' ? 'discover' : 'manager-home';
+    render();
+  },
+  'open-screen': (ds) => {
+    if (ds.screen === 'new-request') state.draftRequest = makeDraftRequest();
+    state.screen = ds.screen;
+    state.params = {};
+    render();
+  },
+  'set-filter': (ds) => { state.filterSport = ds.sport; render(); },
+  'set-sort':   (ds) => { state.sort = ds.sort; render(); },
+  'open-request': (ds) => {
+    state.params = { requestId: ds.requestId };
+    state.screen = 'request-detail';
+    render();
+  },
+  'go-back': () => {
+    if (state.screen === 'thread') {
+      state.screen = 'messages';
+    } else if (state.screen === 'new-request') {
+      state.screen = 'manager-home';
+    } else {
+      state.screen = state.view === 'player' ? 'discover' : 'manager-home';
+    }
+    state.params = {};
+    render();
+  },
+  'claim-request': (ds) => {
+    const r = getRequest(ds.requestId);
+    if (!r || r.status !== 'open') return;
+    r.status = 'claimed';
+    r.claimedBy = state.currentUserId;
+    // create opener message
+    const me = getUser(state.currentUserId);
+    const mgr = getUser(r.managerId);
+    state.data.messages.push({
+      id: uid('m'),
+      requestId: r.id,
+      fromId: me.id,
+      text: `Hey! Just claimed your ${SPORT_MAP[r.sport].name} game — what time should I get there?`,
+      ts: new Date().toISOString(),
+    });
+    saveData();
+    toast(`You claimed ${mgr.name.split(' ')[0]}'s game — opening chat…`, 'success');
+    state.params = { requestId: r.id };
+    state.screen = 'thread';
+    render();
+    // simulate manager reply
+    setTimeout(() => simulateReply(r.id), 1300 + Math.random() * 800);
+  },
+  'cancel-claim': (ds) => {
+    const r = getRequest(ds.requestId);
+    if (!r || r.claimedBy !== state.currentUserId) return;
+    r.status = 'open';
+    r.claimedBy = null;
+    saveData();
+    toast('Claim cancelled');
+    state.screen = 'discover';
+    state.view = 'player';
+    render();
+  },
+  'open-thread': (ds) => {
+    state.params = { requestId: ds.requestId };
+    state.screen = 'thread';
+    render();
+    requestAnimationFrame(() => {
+      const sc = document.getElementById('thread-scroll');
+      if (sc) sc.scrollTop = sc.scrollHeight;
+    });
+  },
+  'send-message': (ds, e) => {
+    e.preventDefault();
+    const form = e.target.closest('form');
+    const input = form.querySelector('input[name="text"]');
+    const text = input.value.trim();
+    if (!text) return;
+    state.data.messages.push({
+      id: uid('m'),
+      requestId: ds.requestId,
+      fromId: state.currentUserId,
+      text,
+      ts: new Date().toISOString(),
+    });
+    input.value = '';
+    saveData();
+    render();
+    requestAnimationFrame(() => {
+      const sc = document.getElementById('thread-scroll');
+      if (sc) sc.scrollTop = sc.scrollHeight;
+    });
+    // simulate a reply
+    setTimeout(() => simulateReply(ds.requestId), 1500 + Math.random() * 1200);
+  },
+  // ---- new request form ----
+  'draft-set': (ds) => {
+    const key = ds.key, val = isFinite(+ds.value) && ds.key !== 'sport' && ds.key !== 'format' && ds.key !== 'genderReq' ? +ds.value : ds.value;
+    state.draftRequest[key] = val;
+    if (key === 'sport') state.draftRequest.format = SPORT_MAP[val].formats[0];
+    render();
+  },
+  'draft-input': (ds, e) => {
+    const t = e.target;
+    state.draftRequest[ds.key] = t.type === 'number' ? +t.value : t.value;
+  },
+  'draft-set-when': (ds) => {
+    const d = new Date();
+    if (ds.when === 'tonight') { d.setHours(20,0,0,0); if (d < new Date()) d.setDate(d.getDate()+1); }
+    if (ds.when === 'tomorrow') { d.setDate(d.getDate()+1); d.setHours(19,0,0,0); }
+    if (ds.when === 'weekend') {
+      const day = d.getDay();
+      const diff = (6 - day + 7) % 7 || 7; // next Saturday
+      d.setDate(d.getDate() + diff); d.setHours(11,0,0,0);
+    }
+    state.draftRequest.date = toLocalInput(d);
+    render();
+  },
+  'draft-set-loc': (ds) => {
+    state.draftRequest.locKey = ds.loc;
+    state.draftRequest.locLabel = LOC[ds.loc].label;
+    render();
+  },
+  'submit-request': () => {
+    const d = state.draftRequest;
+    if (!d.sport)   return toast('Pick a sport',   'error');
+    if (!d.format)  return toast('Pick a format',  'error');
+    if (!d.date)    return toast('Set a date/time','error');
+    if (!d.locLabel)return toast('Enter a location','error');
+    if (!d.minSkill)return toast('Set a min skill','error');
+    const loc = d.locKey ? LOC[d.locKey] : { label: d.locLabel, lat: 40.7081 + (Math.random()-.5)*0.04, lng: -73.9571 + (Math.random()-.5)*0.04 };
+    const req = {
+      id: uid('r'),
+      managerId: state.currentUserId,
+      sport: d.sport, format: d.format,
+      date: new Date(d.date).toISOString(),
+      location: { label: d.locLabel, lat: loc.lat, lng: loc.lng },
+      genderReq: d.genderReq || 'open',
+      minSkill: d.minSkill,
+      payment: +d.payment || 0,
+      notes: d.notes || '',
+      status: 'open', claimedBy: null,
+      createdAt: new Date().toISOString(),
+    };
+    state.data.requests.unshift(req);
+    saveData();
+    toast('Game posted — players notified', 'success');
+    state.draftRequest = null;
+    state.screen = 'manager-home';
+    render();
+  },
+  'delete-request': (ds) => {
+    if (!confirm('Delete this request?')) return;
+    state.data.requests = state.data.requests.filter(r => r.id !== ds.requestId);
+    saveData();
+    toast('Request deleted');
+    state.screen = 'manager-home';
+    render();
+  },
+  // ---- profile ----
+  'set-sport-skill': (ds) => {
+    const u = me();
+    const s = u.sports.find(x => x.sport === ds.sport);
+    if (s) s.skill = +ds.skill;
+    saveData(); render();
+  },
+  'remove-sport': (ds) => {
+    const u = me();
+    u.sports = u.sports.filter(x => x.sport !== ds.sport);
+    saveData(); render();
+  },
+  'add-sport': (ds) => {
+    const u = me();
+    if (!u.sports.find(s => s.sport === ds.sport))
+      u.sports.push({ sport: ds.sport, skill: 3 });
+    saveData(); render();
+  },
+  'set-proximity': (_, e) => {
+    const u = me();
+    u.proximityKm = +e.target.value;
+    const disp = document.querySelector('[data-proximity-display]');
+    if (disp) disp.textContent = u.proximityKm + ' km';
+    clearTimeout(actions._pxTimer);
+    actions._pxTimer = setTimeout(() => { saveData(); render(); }, 250);
+  },
+  // ---- rating ----
+  'rate-prompt': (ds) => {
+    state.draftRating = {
+      requestId: ds.requestId,
+      skill: 0, sportsmanship: 0,
+      publicNote: '', privateNote: '',
+    };
+    renderOverlay();
+  },
+  'close-rating': () => { state.draftRating = null; renderOverlay(); },
+  'rating-set': (ds) => {
+    state.draftRating[ds.key] = +ds.value;
+    renderOverlay();
+  },
+  'rating-input': (ds, e) => {
+    state.draftRating[ds.key] = e.target.value;
+  },
+  'submit-rating': () => {
+    const d = state.draftRating;
+    if (!d) return;
+    const r = getRequest(d.requestId);
+    if (!r) return;
+    const u = me();
+    const isManager = r.managerId === u.id;
+    if (!d.sportsmanship)   return toast('Rate sportsmanship', 'error');
+    if (isManager && !d.skill) return toast('Rate skill', 'error');
+    const otherId = isManager ? r.claimedBy : r.managerId;
+    state.data.ratings.push({
+      id: uid('rt'),
+      requestId: r.id,
+      fromId: u.id,
+      targetId: otherId,
+      role: isManager ? 'manager-rating-player' : 'player-rating-manager',
+      skill: isManager ? d.skill : null,
+      sportsmanship: d.sportsmanship,
+      publicNote: d.publicNote || '',
+      privateNote: d.privateNote || '',
+      createdAt: new Date().toISOString(),
+    });
+    r.status = 'completed';
+    saveData();
+    state.draftRating = null;
+    toast('Rating submitted', 'success');
+    renderOverlay();
+    render();
+  },
+};
+
+function makeDraftRequest() {
+  return {
+    sport: '', format: '', date: '', locKey: '', locLabel: '',
+    genderReq: 'open', minSkill: 3, payment: 0, notes: '',
+  };
+}
+
+function toLocalInput(d) {
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// ------------------------------------------------------------
+// Overlay (rating modal)
+// ------------------------------------------------------------
+function renderOverlay() {
+  $('#overlays').innerHTML = state.draftRating ? renderRatingModal() : '';
+}
+
+// ------------------------------------------------------------
+// Simulated replies
+// ------------------------------------------------------------
+const REPLY_BANK_MANAGER = [
+  "Awesome — see you there. Doors open 15 min before.",
+  "Perfect, you're set. Bring a dark jersey if you've got one.",
+  "Glad to have you! I'll text the rest of the group.",
+  "Sweet, my number's on the booking confirmation — pls text if you get held up.",
+  "Right on — locker room is to the left when you walk in.",
+];
+const REPLY_BANK_PLAYER = [
+  "Sounds good — I'll be there!",
+  "Cool, en route.",
+  "Locked in. Thanks for the call up 🤝",
+  "Sweet, ty — heading over now.",
+];
+
+function simulateReply(requestId) {
+  const r = getRequest(requestId);
+  if (!r) return;
+  const u = me();
+  const otherId = r.managerId === u.id ? r.claimedBy : r.managerId;
+  if (!otherId) return;
+  const bank = otherId === r.managerId ? REPLY_BANK_MANAGER : REPLY_BANK_PLAYER;
+  const text = bank[Math.floor(Math.random() * bank.length)];
+  state.data.messages.push({
+    id: uid('m'),
+    requestId: r.id,
+    fromId: otherId,
+    text,
+    ts: new Date().toISOString(),
+  });
+  saveData();
+  // only re-render if user is on relevant screen
+  if (state.screen === 'thread' && state.params.requestId === r.id) {
+    render();
+    requestAnimationFrame(() => {
+      const sc = document.getElementById('thread-scroll');
+      if (sc) sc.scrollTop = sc.scrollHeight;
+    });
+  } else if (state.screen === 'messages') {
+    render();
+  } else {
+    // update bottom nav for unread badge
+    $('#bottom-nav').innerHTML = renderBottomNav();
+  }
+}
+
+// ------------------------------------------------------------
+// Event binding
+// ------------------------------------------------------------
+function bindEvents() {
+  document.addEventListener('click', (e) => {
+    const target = e.target.closest('[data-action]');
+    if (!target) return;
+    // Form-level actions are handled by the submit listener
+    if (target.tagName === 'FORM') return;
+    const action = target.dataset.action;
+    if (actions[action]) actions[action](target.dataset, e);
+  });
+  document.addEventListener('submit', (e) => {
+    const target = e.target.closest('[data-action]');
+    if (!target) return;
+    const action = target.dataset.action;
+    if (actions[action]) actions[action](target.dataset, e);
+  });
+  document.addEventListener('input', (e) => {
+    const target = e.target.closest('[data-action]');
+    if (!target) return;
+    const action = target.dataset.action;
+    if (action === 'draft-input' || action === 'set-proximity' || action === 'rating-input') {
+      actions[action](target.dataset, e);
+    }
+  });
+  document.addEventListener('change', (e) => {
+    const target = e.target.closest('[data-action]');
+    if (!target) return;
+    const action = target.dataset.action;
+    if (action === 'draft-input') {
+      actions[action](target.dataset, e);
+    }
+  });
+}
+
+// ------------------------------------------------------------
+// Go
+// ------------------------------------------------------------
+init();
+</script>
+</body>
+</html>
