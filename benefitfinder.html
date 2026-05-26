@@ -1,0 +1,989 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>BenefitFinder — Use the perks you already have</title>
+    <meta name="description" content="See which of your existing memberships, credit cards and loyalty programs can save you money on a purchase you are considering." />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+              display: ['Instrument Serif', 'ui-serif', 'Georgia', 'serif'],
+            },
+            colors: {
+              ink: {
+                50: '#f6f7f9',
+                100: '#eceef2',
+                200: '#d5dae2',
+                300: '#b1bac8',
+                400: '#8693a8',
+                500: '#67748b',
+                600: '#525c72',
+                700: '#434b5d',
+                800: '#3a4150',
+                900: '#101524',
+                950: '#080b15',
+              },
+              accent: {
+                50: '#ecfdf5',
+                100: '#d1fae5',
+                500: '#10b981',
+                600: '#059669',
+                700: '#047857',
+              },
+            },
+            boxShadow: {
+              card: '0 1px 2px rgba(16, 21, 36, 0.04), 0 8px 24px -16px rgba(16, 21, 36, 0.12)',
+              pop: '0 24px 48px -16px rgba(16, 21, 36, 0.22)',
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      html, body { font-family: 'Inter', system-ui, sans-serif; }
+      body { background: radial-gradient(120% 80% at 10% -10%, #eef1f7 0%, #faf9f6 38%, #faf9f6 100%); color: #101524; -webkit-font-smoothing: antialiased; }
+      .font-display { font-family: 'Instrument Serif', Georgia, serif; letter-spacing: -0.01em; }
+      .glass { background: rgba(255,255,255,0.72); backdrop-filter: saturate(140%) blur(8px); -webkit-backdrop-filter: saturate(140%) blur(8px); }
+      .hairline { border: 1px solid rgba(16, 21, 36, 0.08); }
+      .ring-focus:focus { outline: none; box-shadow: 0 0 0 4px rgba(16, 21, 36, 0.08); border-color: #101524; }
+      .chip { font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; font-weight: 600; }
+      details > summary { list-style: none; cursor: pointer; }
+      details > summary::-webkit-details-marker { display: none; }
+      .fade-in { animation: fadeIn .35s ease both; }
+      @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+      .scroll-shadow { mask-image: linear-gradient(to bottom, black 92%, transparent 100%); }
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+      input[type="number"] { -moz-appearance: textfield; }
+    </style>
+  </head>
+  <body class="min-h-screen">
+    <!-- Top nav -->
+    <header class="sticky top-0 z-30 glass border-b border-ink-100">
+      <div class="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-ink-900 text-white grid place-items-center shadow-sm">
+            <svg viewBox="0 0 24 24" class="w-4.5 h-4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M12 2v20M5 9l7-7 7 7M5 15l7 7 7-7"/></svg>
+          </div>
+          <div class="leading-tight">
+            <div class="font-semibold tracking-tight text-ink-900">BenefitFinder</div>
+            <div class="text-[11px] text-ink-500 -mt-0.5">Use perks you already have</div>
+          </div>
+        </div>
+        <nav class="flex items-center gap-1 bg-ink-100/70 p-1 rounded-full hairline">
+          <button data-tab="check" class="tab-btn px-3.5 sm:px-4 py-1.5 rounded-full text-sm font-medium text-ink-900 bg-white shadow-sm">Check a purchase</button>
+          <button data-tab="memberships" class="tab-btn px-3.5 sm:px-4 py-1.5 rounded-full text-sm font-medium text-ink-600 hover:text-ink-900">My memberships <span id="navCount" class="ml-1.5 text-[11px] font-semibold text-ink-500"></span></button>
+        </nav>
+      </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-5 sm:px-8 py-8 sm:py-12">
+      <!-- ============================== CHECK A PURCHASE ============================== -->
+      <section id="view-check" class="space-y-8">
+        <div class="space-y-3 max-w-3xl">
+          <span class="chip text-ink-500">Step 1 · Describe it</span>
+          <h1 class="font-display text-4xl sm:text-5xl text-ink-900 leading-[1.05]">What are you thinking of buying?</h1>
+          <p class="text-ink-600 text-base sm:text-lg max-w-2xl">Describe the purchase in plain English. We'll match it against the benefits from the memberships you've already added — nothing else.</p>
+        </div>
+
+        <div class="rounded-2xl bg-white hairline shadow-card p-5 sm:p-6">
+          <textarea id="purchaseInput" rows="3" placeholder='e.g. "Flight to Tokyo in July for two people, about $2,400 total" or "Buying a new $2,800 MacBook Pro for work"' class="w-full resize-none text-[17px] leading-relaxed text-ink-900 placeholder:text-ink-400 bg-transparent border-0 focus:ring-0 focus:outline-none p-0"></textarea>
+          <div class="mt-4 flex flex-wrap items-center gap-2">
+            <span class="text-xs text-ink-500 mr-1">Try:</span>
+            <button class="example-btn text-xs px-2.5 py-1 rounded-full bg-ink-50 hover:bg-ink-100 text-ink-700 hairline" data-example="Booking a $480/night hotel in New York for 4 nights">A hotel in New York</button>
+            <button class="example-btn text-xs px-2.5 py-1 rounded-full bg-ink-50 hover:bg-ink-100 text-ink-700 hairline" data-example="Two return flights to Paris in September, ~$1,900 each on Air Canada">Flights to Paris</button>
+            <button class="example-btn text-xs px-2.5 py-1 rounded-full bg-ink-50 hover:bg-ink-100 text-ink-700 hairline" data-example="Buying a new $2,800 laptop for work">A $2,800 laptop</button>
+            <button class="example-btn text-xs px-2.5 py-1 rounded-full bg-ink-50 hover:bg-ink-100 text-ink-700 hairline" data-example="Grocery run at Loblaws, ~$220">Groceries at Loblaws</button>
+            <button class="example-btn text-xs px-2.5 py-1 rounded-full bg-ink-50 hover:bg-ink-100 text-ink-700 hairline" data-example="Renting a car in Vancouver for 5 days, ~$520 total">Rental car</button>
+          </div>
+          <div class="mt-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div class="text-xs text-ink-500"><span id="checkCount">0 memberships</span> active · matching only what you own</div>
+            <button id="analyzeBtn" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-ink-900 text-white text-sm font-medium hover:bg-ink-800 transition shadow-sm disabled:opacity-50">
+              Find my benefits
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Results -->
+        <div id="results" class="space-y-5"></div>
+      </section>
+
+      <!-- ============================== MEMBERSHIPS ============================== -->
+      <section id="view-memberships" class="hidden space-y-8">
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div class="space-y-2 max-w-2xl">
+            <span class="chip text-ink-500">Your wallet</span>
+            <h1 class="font-display text-4xl sm:text-5xl text-ink-900 leading-[1.05]">My memberships</h1>
+            <p class="text-ink-600 text-base">Credit cards, loyalty programs, employer perks, insurance, and any other memberships you have. Add as many as you want.</p>
+          </div>
+          <button id="openAddBtn" class="self-start sm:self-end inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-ink-900 text-white text-sm font-medium hover:bg-ink-800 transition shadow-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+            Add membership
+          </button>
+        </div>
+
+        <!-- Category filter -->
+        <div id="categoryFilter" class="flex flex-wrap gap-2"></div>
+
+        <!-- Cards grid -->
+        <div id="membershipsList" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+
+        <div id="emptyState" class="hidden text-center py-20 rounded-2xl bg-white hairline">
+          <div class="text-ink-400 mb-3">
+            <svg class="mx-auto" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M8 15h2"/></svg>
+          </div>
+          <h3 class="font-display text-2xl text-ink-900">No memberships yet</h3>
+          <p class="text-sm text-ink-500 mt-1">Add your first one to start matching benefits.</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="max-w-6xl mx-auto px-5 sm:px-8 py-10 text-xs text-ink-400">
+      Benefit values shown are conservative estimates. Always confirm program terms with the issuer before relying on a benefit.
+    </footer>
+
+    <!-- ============================== ADD / EDIT MODAL ============================== -->
+    <div id="modal" class="hidden fixed inset-0 z-50">
+      <div class="absolute inset-0 bg-ink-950/40 backdrop-blur-sm" data-close></div>
+      <div class="relative h-full overflow-y-auto flex items-start sm:items-center justify-center p-4 sm:p-6">
+        <div class="relative w-full max-w-2xl bg-white rounded-2xl shadow-pop hairline fade-in">
+          <div class="px-6 sm:px-8 py-5 border-b border-ink-100 flex items-center justify-between">
+            <div>
+              <div class="chip text-ink-500" id="modalKicker">Add</div>
+              <h2 class="font-display text-2xl text-ink-900" id="modalTitle">Add a membership</h2>
+            </div>
+            <button data-close class="w-9 h-9 grid place-items-center rounded-full hover:bg-ink-100 text-ink-500">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+
+          <div class="px-6 sm:px-8 py-6 space-y-5">
+            <!-- Search/select from library -->
+            <div>
+              <label class="text-xs font-semibold text-ink-700 uppercase tracking-wide">Choose from library</label>
+              <p class="text-xs text-ink-500 mt-0.5 mb-2">Pick a known Canadian program — its benefits are pre-loaded.</p>
+              <div class="relative">
+                <input id="librarySearch" type="text" autocomplete="off" placeholder="Search 30+ Canadian programs…" class="w-full px-4 py-2.5 rounded-xl bg-ink-50 hairline text-sm ring-focus" />
+                <div id="librarySuggestions" class="hidden absolute z-10 left-0 right-0 mt-1 bg-white hairline rounded-xl shadow-pop max-h-64 overflow-y-auto"></div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-3 text-xs text-ink-400">
+              <div class="flex-1 h-px bg-ink-100"></div>
+              <span>or build a custom one</span>
+              <div class="flex-1 h-px bg-ink-100"></div>
+            </div>
+
+            <!-- Custom fields -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="text-xs font-semibold text-ink-700 uppercase tracking-wide">Membership name</label>
+                <input id="mName" type="text" class="mt-1.5 w-full px-4 py-2.5 rounded-xl bg-ink-50 hairline text-sm ring-focus" placeholder="e.g. Acme Corp Employee Perks" />
+              </div>
+              <div>
+                <label class="text-xs font-semibold text-ink-700 uppercase tracking-wide">Category</label>
+                <select id="mCategory" class="mt-1.5 w-full px-4 py-2.5 rounded-xl bg-ink-50 hairline text-sm ring-focus">
+                  <option>Credit card</option>
+                  <option>Travel loyalty</option>
+                  <option>Hotel loyalty</option>
+                  <option>Employer perks</option>
+                  <option>Retail</option>
+                  <option>Insurance</option>
+                  <option>Auto club</option>
+                  <option>Subscription</option>
+                  <option>Other</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Benefits list builder -->
+            <div>
+              <div class="flex items-center justify-between">
+                <label class="text-xs font-semibold text-ink-700 uppercase tracking-wide">Benefits</label>
+                <button id="addBenefitRow" type="button" class="text-xs font-medium text-ink-900 hover:underline">+ Add benefit</button>
+              </div>
+              <div id="benefitsBuilder" class="mt-2 space-y-3"></div>
+            </div>
+          </div>
+
+          <div class="px-6 sm:px-8 py-4 bg-ink-50/60 rounded-b-2xl flex items-center justify-between border-t border-ink-100">
+            <button id="deleteBtn" class="hidden text-sm text-red-600 hover:text-red-700 font-medium">Delete membership</button>
+            <div class="ml-auto flex items-center gap-2">
+              <button data-close class="px-4 py-2 rounded-full text-sm text-ink-700 hover:bg-ink-100">Cancel</button>
+              <button id="saveBtn" class="px-4 py-2 rounded-full bg-ink-900 text-white text-sm font-medium hover:bg-ink-800">Save membership</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 hidden">
+      <div class="px-4 py-2.5 rounded-full bg-ink-900 text-white text-sm shadow-pop flex items-center gap-2">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        <span id="toastMsg">Saved</span>
+      </div>
+    </div>
+
+    <script>
+      // ============================================================
+      // PROGRAM LIBRARY — realistic Canadian programs and benefits.
+      // Tags are used for matching purchases to benefits.
+      // ============================================================
+      const LIBRARY = [
+        {
+          id: 'amex-platinum-ca',
+          name: 'American Express Platinum (Canada)',
+          category: 'Credit card',
+          issuer: 'American Express',
+          benefits: [
+            { name: '$200 annual travel credit', description: 'Statement credit for eligible travel purchases booked through Amex Travel.', tags: ['travel','flight','hotel'], savings: { type: 'flat', value: 200 }, restrictions: 'Once per calendar year. Eligible travel only.' },
+            { name: 'Fine Hotels & Resorts US$100 credit', description: 'Property credit, daily breakfast for two, room upgrade when available, 4pm late checkout.', tags: ['hotel','luxury','stay'], savings: { type: 'flat', value: 130 }, restrictions: 'Two-night minimum at participating FHR properties. Book through Amex Travel.' },
+            { name: 'Marriott Bonvoy Gold Elite status', description: 'Complimentary mid-tier status with late checkout, room upgrades and bonus points.', tags: ['hotel','marriott'], savings: { type: 'estimate', value: 60 }, restrictions: 'Enrollment required. Re-qualifies annually with card.' },
+            { name: 'Hilton Honors Gold status', description: 'Free breakfast at most international properties, room upgrades, 80% bonus points.', tags: ['hotel','hilton'], savings: { type: 'estimate', value: 50 }, restrictions: 'Enrollment required.' },
+            { name: 'Priority Pass — unlimited visits', description: 'Access to 1,400+ airport lounges worldwide for you and two guests.', tags: ['travel','flight','airport','lounge'], savings: { type: 'flat', value: 45 }, restrictions: 'Per visit value. Activate Priority Pass enrollment first.' },
+            { name: 'NEXUS application fee credit', description: 'Statement credit covering the NEXUS application fee.', tags: ['travel','nexus'], savings: { type: 'flat', value: 50 }, restrictions: 'Once every 4 years.' },
+            { name: 'Hertz President\'s Circle status', description: 'Top-tier Hertz elite status with upgrades and skip-the-counter.', tags: ['car','rental','hertz','auto'], savings: { type: 'estimate', value: 35 }, restrictions: 'Enrollment required at Hertz.com/Amex.' },
+            { name: 'Premium travel insurance', description: 'Trip cancellation, trip interruption, lost baggage, rental car CDW and emergency medical.', tags: ['travel','flight','car','rental','insurance'], savings: { type: 'estimate', value: 80 }, restrictions: 'Must charge full fare/rental to the card. Coverage limits apply.' },
+          ],
+        },
+        {
+          id: 'amex-cobalt',
+          name: 'American Express Cobalt Card',
+          category: 'Credit card',
+          issuer: 'American Express',
+          benefits: [
+            { name: '5x points on eats & drinks', description: 'Earn 5x Membership Rewards on groceries, restaurants, food delivery and bars in Canada.', tags: ['groceries','food','restaurant','dining','delivery'], savings: { type: 'percent', value: 5 }, restrictions: 'Up to $30,000 in annual purchases in this category.' },
+            { name: '3x points on streaming', description: '3x points on eligible streaming subscriptions.', tags: ['streaming','subscription','entertainment'], savings: { type: 'percent', value: 3 }, restrictions: 'Eligible streaming services in Canada.' },
+            { name: '2x points on travel & transit', description: '2x Membership Rewards on flights, hotels, ride share, transit and gas.', tags: ['travel','flight','hotel','transit','gas','rideshare'], savings: { type: 'percent', value: 2 }, restrictions: 'Eligible travel and transit categories.' },
+            { name: 'Hotel Collection $100 credit', description: 'US$100 property credit and room upgrade when available on 2+ night stays.', tags: ['hotel','luxury','stay'], savings: { type: 'flat', value: 130 }, restrictions: 'Book through Amex Travel. Two-night minimum.' },
+          ],
+        },
+        {
+          id: 'td-aeroplan-vip',
+          name: 'TD Aeroplan Visa Infinite Privilege',
+          category: 'Credit card',
+          issuer: 'TD',
+          benefits: [
+            { name: 'First checked bag free on Air Canada', description: 'Free first checked bag for the primary cardholder and up to 8 companions on same reservation.', tags: ['flight','aircanada','baggage','travel'], savings: { type: 'flat', value: 70 }, restrictions: 'Must book with Aeroplan number associated to the card.' },
+            { name: 'Maple Leaf Lounge access (4 passes/yr)', description: 'Four single-use Maple Leaf Lounge vouchers per year.', tags: ['flight','airport','lounge','aircanada','travel'], savings: { type: 'flat', value: 65 }, restrictions: 'Domestic, US transborder and international Maple Leaf Lounges only.' },
+            { name: '2x Aeroplan points on Air Canada', description: '2x points on every dollar of direct Air Canada purchases.', tags: ['flight','aircanada','travel'], savings: { type: 'percent', value: 3 }, restrictions: 'Direct AC purchases only.' },
+            { name: 'Comprehensive travel insurance', description: 'Trip cancellation, interruption, emergency medical (under 65), rental car CDW.', tags: ['travel','flight','car','rental','insurance'], savings: { type: 'estimate', value: 70 }, restrictions: 'Must charge full fare to card. Age and pre-existing condition limits.' },
+            { name: 'NEXUS application fee rebate', description: 'Statement credit equal to the NEXUS application fee.', tags: ['travel','nexus'], savings: { type: 'flat', value: 50 }, restrictions: 'Once every 4 years.' },
+          ],
+        },
+        {
+          id: 'cibc-aventura-vi',
+          name: 'CIBC Aventura Visa Infinite',
+          category: 'Credit card',
+          issuer: 'CIBC',
+          benefits: [
+            { name: 'Priority Pass — 4 visits/year', description: 'Four complimentary airport lounge visits per year.', tags: ['flight','airport','lounge','travel'], savings: { type: 'flat', value: 38 }, restrictions: 'Per visit value. Additional visits $32 USD.' },
+            { name: '2x Aventura points on travel', description: '2x points on travel booked through the CIBC Rewards Centre.', tags: ['travel','flight','hotel','car','rental'], savings: { type: 'percent', value: 2 }, restrictions: 'Must book through CIBC Rewards Centre.' },
+            { name: 'Travel insurance package', description: 'Out-of-province emergency medical, trip cancellation, interruption, flight delay.', tags: ['travel','flight','insurance'], savings: { type: 'estimate', value: 60 }, restrictions: 'Coverage limits and age restrictions apply.' },
+            { name: 'Visa Infinite concierge', description: '24/7 concierge for travel, dining and entertainment bookings.', tags: ['travel','dining','entertainment'], savings: { type: 'estimate', value: 20 }, restrictions: 'Complimentary service; bookings at your cost.' },
+          ],
+        },
+        {
+          id: 'scotia-gold-amex',
+          name: 'Scotiabank Gold American Express',
+          category: 'Credit card',
+          issuer: 'Scotiabank',
+          benefits: [
+            { name: '5x points on groceries, restaurants & delivery', description: '5x Scene+ points on eligible grocery, dining and food delivery in Canada.', tags: ['groceries','food','restaurant','dining','delivery'], savings: { type: 'percent', value: 5 }, restrictions: 'Up to $50,000 in annual eligible purchases.' },
+            { name: '3x points on gas, transit & streaming', description: '3x Scene+ points on gas, daily transit and select streaming.', tags: ['gas','transit','streaming','subscription'], savings: { type: 'percent', value: 3 }, restrictions: 'Eligible merchants only.' },
+            { name: 'No foreign transaction fees', description: 'Saves the typical 2.5% FX markup on purchases in foreign currency.', tags: ['travel','flight','hotel','foreign','fx','international'], savings: { type: 'percent', value: 2.5 }, restrictions: 'Applies to non-CAD purchases. Network FX rate still applies.' },
+            { name: 'Comprehensive travel insurance', description: 'Out-of-province emergency medical, trip cancellation, flight delay, rental car CDW.', tags: ['travel','flight','car','rental','insurance'], savings: { type: 'estimate', value: 55 }, restrictions: 'Charge full cost to card. Coverage limits apply.' },
+          ],
+        },
+        {
+          id: 'marriott-bonvoy',
+          name: 'Marriott Bonvoy',
+          category: 'Hotel loyalty',
+          issuer: 'Marriott',
+          benefits: [
+            { name: 'Member rate discount', description: '~5% discount off standard rates when booking direct on Marriott.com.', tags: ['hotel','marriott','stay'], savings: { type: 'percent', value: 5 }, restrictions: 'Must book direct as a Bonvoy member.' },
+            { name: 'Free WiFi at all properties', description: 'Complimentary in-room WiFi at Marriott brand hotels.', tags: ['hotel','marriott','stay','wifi'], savings: { type: 'flat', value: 15 }, restrictions: 'Standard WiFi only at some properties.' },
+            { name: 'Points on every paid stay', description: 'Earn 10 base points per US$1, redeemable for free nights.', tags: ['hotel','marriott','stay'], savings: { type: 'percent', value: 7 }, restrictions: 'Effective return varies by property and redemption choice.' },
+            { name: '5th night free on award stays', description: 'Book 5 nights with points, pay only for 4.', tags: ['hotel','marriott','stay','points'], savings: { type: 'percent', value: 20 }, restrictions: 'Standard award redemptions only.' },
+          ],
+        },
+        {
+          id: 'aeroplan',
+          name: 'Aeroplan',
+          category: 'Travel loyalty',
+          issuer: 'Air Canada',
+          benefits: [
+            { name: 'Earn points on Air Canada & partners', description: 'Earn Aeroplan points on Air Canada and Star Alliance partner flights.', tags: ['flight','aircanada','travel'], savings: { type: 'percent', value: 3 }, restrictions: 'Earn rate depends on fare class.' },
+            { name: 'Family Sharing pool', description: 'Combine points with up to 7 family members at no fee.', tags: ['flight','travel','family'], savings: { type: 'estimate', value: 0 }, restrictions: 'One transfer in/out per year per member.' },
+            { name: 'Use points for any seat', description: 'No blackout dates — redeem points on any available Air Canada seat.', tags: ['flight','aircanada','travel','points'], savings: { type: 'estimate', value: 40 }, restrictions: 'Dynamic pricing; value varies by route and demand.' },
+          ],
+        },
+        {
+          id: 'perkopolis',
+          name: 'Perkopolis (employer perks)',
+          category: 'Employer perks',
+          issuer: 'Perkopolis',
+          benefits: [
+            { name: 'Cineplex tickets at ~$11.99', description: 'Discounted general admission Cineplex tickets vs. ~$15 at the box office.', tags: ['movies','entertainment','cineplex'], savings: { type: 'flat', value: 4 }, restrictions: 'Online code purchase. Surcharges may apply for premium formats.' },
+            { name: 'Hotel discounts up to 15%', description: 'Negotiated rates at participating Canadian and US hotel chains.', tags: ['hotel','stay','travel'], savings: { type: 'percent', value: 12 }, restrictions: 'Specific brands and rate codes. Not combinable with other offers.' },
+            { name: 'Theme park & attraction tickets', description: 'Reduced-price tickets to Canada\'s Wonderland, Ripley\'s and more.', tags: ['entertainment','themepark','attraction','family'], savings: { type: 'percent', value: 20 }, restrictions: 'Limited dates. Print-at-home vouchers.' },
+            { name: 'Apple Education store access', description: 'Up to 10% off Mac and iPad via the Apple Education portal.', tags: ['electronics','laptop','apple','computer','ipad'], savings: { type: 'percent', value: 8 }, restrictions: 'One Mac and one iPad per year. Some accessories excluded.' },
+            { name: 'Car rental discounts (Avis/Budget/Enterprise)', description: 'Up to 25% off base rates at major rental brands.', tags: ['car','rental','auto','travel'], savings: { type: 'percent', value: 15 }, restrictions: 'Must use partner code. Excludes peak holidays.' },
+            { name: 'The Bay & Best Buy promos', description: 'Rotating promo codes and gift card discounts at major Canadian retailers.', tags: ['retail','electronics','shopping','homegoods'], savings: { type: 'percent', value: 5 }, restrictions: 'Stock and discount varies week to week.' },
+          ],
+        },
+        {
+          id: 'costco-executive',
+          name: 'Costco Executive Membership',
+          category: 'Retail',
+          issuer: 'Costco',
+          benefits: [
+            { name: '2% annual reward on Costco purchases', description: '2% reward on most Costco and Costco.ca purchases (in addition to credit card rewards).', tags: ['groceries','retail','shopping','costco','electronics','homegoods'], savings: { type: 'percent', value: 2 }, restrictions: 'Capped at $1,250/yr. Excludes some categories.' },
+            { name: 'Costco Travel discounts', description: 'Member pricing on flights, hotels, car rentals and cruises.', tags: ['travel','flight','hotel','car','rental','cruise'], savings: { type: 'percent', value: 6 }, restrictions: 'Must book through Costco Travel.' },
+            { name: 'Optical, hearing aid & tire pricing', description: 'Significantly discounted pricing on glasses, hearing aids and tires.', tags: ['retail','optical','tires','auto','health'], savings: { type: 'percent', value: 15 }, restrictions: 'Members only at the Optical/Tire centres.' },
+          ],
+        },
+        {
+          id: 'caa',
+          name: 'CAA Membership',
+          category: 'Auto club',
+          issuer: 'CAA',
+          benefits: [
+            { name: 'Roadside assistance', description: '24/7 towing, battery boost, lockout service and fuel delivery.', tags: ['car','auto','roadside','breakdown'], savings: { type: 'estimate', value: 90 }, restrictions: 'Service call limits depend on tier (Classic/Plus/Premier).' },
+            { name: 'Hotel discounts (~10%)', description: 'Show-your-card discount at Best Western, Hilton, IHG and others.', tags: ['hotel','stay','travel'], savings: { type: 'percent', value: 10 }, restrictions: 'CAA/AAA rate at participating hotels.' },
+            { name: 'Hertz rental car discounts', description: 'Up to 20% off Hertz rentals plus free additional driver.', tags: ['car','rental','auto','hertz','travel'], savings: { type: 'percent', value: 12 }, restrictions: 'Use CAA discount code at booking.' },
+            { name: 'Retail show-your-card savings', description: 'Discounts at Sport Chek, Endy, Sleep Country, Hard Rock Cafe and many others.', tags: ['retail','shopping','homegoods','dining'], savings: { type: 'percent', value: 8 }, restrictions: 'Vary by partner; usually in-store.' },
+            { name: 'CAA Travel insurance', description: 'Member pricing on emergency medical and trip cancellation travel insurance.', tags: ['travel','insurance','flight','medical'], savings: { type: 'percent', value: 10 }, restrictions: 'Member rate vs. non-member.' },
+          ],
+        },
+        {
+          id: 'pc-optimum',
+          name: 'PC Optimum',
+          category: 'Retail',
+          issuer: 'Loblaw',
+          benefits: [
+            { name: 'Points at Loblaws/Shoppers/Esso', description: 'Earn points on groceries (Loblaws/Real Canadian Superstore), Shoppers Drug Mart and Esso fuel.', tags: ['groceries','retail','gas','shopping','pharmacy'], savings: { type: 'percent', value: 1.5 }, restrictions: 'Effective return varies with bonus offers.' },
+            { name: '20x bonus events at Shoppers', description: 'Several "20x the points" Saturdays at Shoppers Drug Mart.', tags: ['retail','pharmacy','shopping','health','beauty'], savings: { type: 'percent', value: 4 }, restrictions: 'Spend threshold (typically $50) on eligible Saturdays.' },
+            { name: 'Personalized weekly offers', description: 'Targeted bonus point offers in the app for items you regularly buy.', tags: ['groceries','retail','shopping','pharmacy'], savings: { type: 'percent', value: 2 }, restrictions: 'Offers vary per member each week.' },
+          ],
+        },
+        {
+          id: 'sport-chek-triangle',
+          name: 'Canadian Tire Triangle Rewards',
+          category: 'Retail',
+          issuer: 'Canadian Tire',
+          benefits: [
+            { name: 'CT Money at Canadian Tire & Sport Chek', description: 'Earn 4% CT Money at Canadian Tire and 4% at Sport Chek (in CT Money form).', tags: ['retail','shopping','sportchek','canadiantire','homegoods','sports'], savings: { type: 'percent', value: 4 }, restrictions: 'Effective rate varies with bonus weeks.' },
+            { name: 'Gas at Gas+ stations', description: 'Earn CT Money on Petro-style fuel purchases at Gas+ stations.', tags: ['gas','fuel','auto'], savings: { type: 'percent', value: 3 }, restrictions: 'At participating Gas+ stations.' },
+          ],
+        },
+        {
+          id: 'air-miles',
+          name: 'Air Miles',
+          category: 'Retail',
+          issuer: 'Air Miles',
+          benefits: [
+            { name: 'Earn miles at Metro/Rexall/LCBO', description: 'Collect AIR MILES Reward Miles at hundreds of Canadian sponsors.', tags: ['groceries','retail','shopping','liquor','pharmacy'], savings: { type: 'percent', value: 1 }, restrictions: 'Earn rate varies by sponsor.' },
+            { name: 'Cash miles at checkout', description: 'Redeem 95 miles for $10 off at participating stores.', tags: ['groceries','retail','shopping'], savings: { type: 'estimate', value: 10 }, restrictions: 'In-store redemption at sponsor checkouts.' },
+          ],
+        },
+        {
+          id: 'hilton-honors',
+          name: 'Hilton Honors',
+          category: 'Hotel loyalty',
+          issuer: 'Hilton',
+          benefits: [
+            { name: 'Member rate (~5% off)', description: 'Lower rate when booking direct as a member.', tags: ['hotel','hilton','stay'], savings: { type: 'percent', value: 5 }, restrictions: 'Must book direct as a member.' },
+            { name: '5th night free on award stays', description: 'Stay 5 nights on points, pay 4.', tags: ['hotel','hilton','stay','points'], savings: { type: 'percent', value: 20 }, restrictions: 'Standard award redemptions only.' },
+            { name: 'Free WiFi for members', description: 'Complimentary WiFi at all Hilton brand hotels.', tags: ['hotel','hilton','wifi','stay'], savings: { type: 'flat', value: 12 }, restrictions: 'Standard WiFi tier.' },
+          ],
+        },
+        {
+          id: 'apple-edu',
+          name: 'Apple Education pricing',
+          category: 'Retail',
+          issuer: 'Apple',
+          benefits: [
+            { name: 'Education discount on Mac/iPad', description: 'Save up to ~10% on Mac, iPad and AppleCare+ through the Education store.', tags: ['electronics','laptop','apple','computer','ipad','tablet'], savings: { type: 'percent', value: 9 }, restrictions: 'For students, parents of post-secondary students, teachers and staff.' },
+            { name: 'Free engraving & 14-day returns', description: 'Same returns and free engraving as the regular Apple Store.', tags: ['electronics','laptop','apple','computer','ipad','tablet'], savings: { type: 'estimate', value: 0 }, restrictions: 'No financial value; service benefit.' },
+          ],
+        },
+        {
+          id: 'student-spc',
+          name: 'SPC+ (Student Price Card)',
+          category: 'Subscription',
+          issuer: 'SPC',
+          benefits: [
+            { name: 'Retail & dining discounts', description: '~10% student discount at 450+ retailers including Adidas, Aritzia, Dynamite and Foot Locker.', tags: ['retail','shopping','dining','clothing','fashion'], savings: { type: 'percent', value: 10 }, restrictions: 'Some brands in-store only. Student verification.' },
+          ],
+        },
+        {
+          id: 'rbc-avion-vi',
+          name: 'RBC Avion Visa Infinite',
+          category: 'Credit card',
+          issuer: 'RBC',
+          benefits: [
+            { name: 'Avion points on every purchase', description: '1.25 Avion points per $1 on travel, 1 point per $1 elsewhere.', tags: ['travel','flight','hotel'], savings: { type: 'percent', value: 1.5 }, restrictions: 'Redemption value varies; best on flight rewards.' },
+            { name: 'Travel insurance suite', description: 'Trip cancellation, interruption, emergency medical (under 65) and rental car CDW.', tags: ['travel','flight','car','rental','insurance'], savings: { type: 'estimate', value: 60 }, restrictions: 'Charge full fare to card. Limits apply.' },
+            { name: 'DragonPass — 6 lounge visits', description: 'Six complimentary airport lounge visits annually via DragonPass.', tags: ['flight','airport','lounge','travel'], savings: { type: 'flat', value: 36 }, restrictions: 'Per visit value. Enrollment required.' },
+          ],
+        },
+        {
+          id: 'wealthsimple-premium',
+          name: 'Wealthsimple Premium',
+          category: 'Subscription',
+          issuer: 'Wealthsimple',
+          benefits: [
+            { name: 'No-FX foreign currency spending', description: 'No 1.5% FX fee on purchases in foreign currency with Wealthsimple Cash.', tags: ['travel','foreign','fx','international','flight','hotel'], savings: { type: 'percent', value: 1.5 }, restrictions: 'Wealthsimple Cash card or transfer only.' },
+            { name: 'Airport lounge passes (2/yr)', description: 'Two complimentary airport lounge passes per year (Premium tier).', tags: ['flight','airport','lounge','travel'], savings: { type: 'flat', value: 40 }, restrictions: 'Premium tier only. Per visit value.' },
+          ],
+        },
+      ];
+
+      const CATEGORY_ICONS = {
+        'Credit card': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h3"/></svg>',
+        'Travel loyalty': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.2-.9.7v.7c0 .3.2.7.5.8L11 12l-2 3-3-.5c-.4 0-.8.2-.9.6l-.2.7L10 18l1 4 .7-.3c.4-.2.6-.5.6-.9L12 18l3-2 4.6 5.6c.2.3.5.4.8.4h.7c.5 0 .8-.4.7-.9z"/></svg>',
+        'Hotel loyalty': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M3 21V8l9-5 9 5v13M9 21v-6h6v6M3 13h18"/></svg>',
+        'Employer perks': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/></svg>',
+        'Retail': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M6 2 3 6v2a2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0V6l-3-4zM5 20V10M19 20V10M5 20h14"/></svg>',
+        'Insurance': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+        'Auto club': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M3 13l2-6h14l2 6M5 13h14v5H5zM7 18v2M17 18v2"/></svg>',
+        'Subscription': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M21 12a9 9 0 0 1-15 6.7L3 16M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M3 21v-5h5"/></svg>',
+        'Other': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/></svg>',
+      };
+
+      // ============================================================
+      // KEYWORD → TAG MAP for matching purchases to benefits.
+      // ============================================================
+      const KEYWORDS = {
+        flight: ['flight','fly','flying','plane','airfare','airline','airplane','airport','ticket'],
+        aircanada: ['air canada','aircanada','ac flight'],
+        hotel: ['hotel','stay','resort','accommodation','airbnb','vacation rental','motel','suite','room','lodging','marriott','hilton','sheraton','westin','holiday inn','best western','ihg','hyatt','fairmont'],
+        marriott: ['marriott','sheraton','westin','st regis','ritz-carlton','renaissance','autograph','jw marriott','bonvoy','courtyard','residence inn'],
+        hilton: ['hilton','hampton','doubletree','embassy suites','waldorf','conrad','curio'],
+        car: ['car','vehicle','auto','sedan','suv'],
+        rental: ['rental','rent a car','hertz','avis','budget','enterprise','national rental','sixt','alamo','dollar rental','thrifty'],
+        gas: ['gas','fuel','gasoline','petro','esso','shell','chevron','husky','ultramar'],
+        transit: ['transit','subway','bus pass','presto','metro pass','ttc'],
+        rideshare: ['uber','lyft','rideshare','ride share','taxi'],
+        groceries: ['grocery','groceries','supermarket','loblaws','metro','sobeys','fortinos','superstore','no frills','farm boy','t&t','whole foods','food basics','iga','provigo'],
+        restaurant: ['restaurant','dining','dinner','lunch','brunch','meal out'],
+        dining: ['restaurant','dining','dinner','lunch','brunch'],
+        delivery: ['uber eats','doordash','skip the dishes','skip','food delivery'],
+        food: ['food','meal'],
+        streaming: ['netflix','spotify','disney','crave','apple tv','apple music','prime video','amazon prime','youtube premium','streaming'],
+        subscription: ['subscription','monthly plan','annual plan'],
+        entertainment: ['movie','movies','concert','show','cineplex','theatre','theater'],
+        movies: ['movie','cineplex','cinema','film'],
+        cineplex: ['cineplex'],
+        themepark: ['theme park','wonderland','disney park','universal','six flags'],
+        attraction: ['museum','aquarium','zoo','attraction','ripley'],
+        electronics: ['laptop','macbook','computer','pc','phone','iphone','ipad','tablet','tv','television','headphones','airpods','console','playstation','xbox','camera','electronics','apple'],
+        laptop: ['laptop','macbook','notebook','ultrabook'],
+        apple: ['apple','macbook','iphone','ipad','imac','airpods'],
+        computer: ['computer','laptop','pc','desktop','macbook'],
+        ipad: ['ipad','tablet'],
+        tablet: ['tablet','ipad'],
+        retail: ['shopping','store','retail','bay','hudson','best buy','walmart','sport chek','canadian tire'],
+        shopping: ['shopping','store','retail','buy','purchase'],
+        homegoods: ['furniture','sofa','mattress','bed','endy','sleep country','ikea','wayfair','homesense','home depot','lowes','rona','crate & barrel','west elm','pottery barn'],
+        sports: ['sport chek','sports','running shoes','sneakers','fitness'],
+        clothing: ['clothing','clothes','jacket','shoes','dress','apparel','aritzia','adidas','nike','lululemon','zara','h&m'],
+        fashion: ['fashion','clothing','clothes','apparel'],
+        pharmacy: ['shoppers','rexall','pharmaprix','pharmacy','prescription'],
+        health: ['health','vitamin','wellness','glasses','hearing aid'],
+        beauty: ['beauty','makeup','skincare','sephora','shoppers beauty'],
+        liquor: ['lcbo','wine','liquor','alcohol','beer'],
+        tires: ['tires','tire'],
+        optical: ['glasses','eyeglasses','contacts','optical'],
+        airport: ['airport','flight','flying','airline'],
+        lounge: ['lounge','priority pass'],
+        nexus: ['nexus','global entry','trusted traveler'],
+        baggage: ['baggage','checked bag','luggage','suitcase'],
+        travel: ['travel','trip','vacation','holiday','flight','hotel','rental car','tour','cruise','itinerary'],
+        cruise: ['cruise','carnival','royal caribbean'],
+        foreign: ['euro','yen','usd','foreign','overseas','abroad','outside canada','international','japan','europe','tokyo','paris','london','new york','nyc','usa','united states','mexico','asia','italy','france','spain'],
+        fx: ['foreign currency','currency','exchange rate','fx'],
+        international: ['international','overseas','abroad','outside canada','europe','asia','japan','tokyo','paris','london'],
+        insurance: ['insurance','coverage','rental car insurance','trip insurance','medical'],
+        medical: ['medical','health','hospital','emergency medical'],
+        breakdown: ['breakdown','tow','towing','dead battery','flat tire','locked out'],
+        roadside: ['roadside','tow','breakdown'],
+        wifi: ['wifi','internet'],
+        family: ['family','kids','children'],
+        points: ['points','miles','rewards'],
+        sportchek: ['sport chek'],
+        canadiantire: ['canadian tire'],
+        costco: ['costco'],
+        hertz: ['hertz'],
+        fuel: ['gas','fuel','petro','esso','shell'],
+        auto: ['car','vehicle','auto','tire','rental'],
+      };
+
+      // ============================================================
+      // STATE
+      // ============================================================
+      const STORAGE_KEY = 'benefitfinder.memberships.v1';
+      let memberships = [];
+      let editingId = null;
+      let categoryFilter = 'All';
+
+      // ============================================================
+      // STORAGE
+      // ============================================================
+      function load() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            memberships = JSON.parse(raw);
+          } else {
+            // Pre-load realistic starter set
+            memberships = [
+              cloneFromLibrary('amex-cobalt'),
+              cloneFromLibrary('td-aeroplan-vip'),
+              cloneFromLibrary('marriott-bonvoy'),
+              cloneFromLibrary('aeroplan'),
+              cloneFromLibrary('perkopolis'),
+              cloneFromLibrary('costco-executive'),
+              cloneFromLibrary('caa'),
+              cloneFromLibrary('pc-optimum'),
+            ].filter(Boolean);
+            save();
+          }
+        } catch (e) {
+          memberships = [];
+        }
+      }
+      function save() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(memberships));
+      }
+      function cloneFromLibrary(id) {
+        const tpl = LIBRARY.find(l => l.id === id);
+        if (!tpl) return null;
+        return {
+          id: id + '-' + Math.random().toString(36).slice(2, 7),
+          libraryId: tpl.id,
+          name: tpl.name,
+          category: tpl.category,
+          issuer: tpl.issuer,
+          benefits: JSON.parse(JSON.stringify(tpl.benefits)),
+        };
+      }
+
+      // ============================================================
+      // VIEW SWITCHING
+      // ============================================================
+      const tabs = document.querySelectorAll('.tab-btn');
+      tabs.forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+      function switchTab(tab) {
+        tabs.forEach(b => {
+          const active = b.dataset.tab === tab;
+          b.classList.toggle('bg-white', active);
+          b.classList.toggle('shadow-sm', active);
+          b.classList.toggle('text-ink-900', active);
+          b.classList.toggle('text-ink-600', !active);
+        });
+        document.getElementById('view-check').classList.toggle('hidden', tab !== 'check');
+        document.getElementById('view-memberships').classList.toggle('hidden', tab !== 'memberships');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      // ============================================================
+      // MEMBERSHIPS UI
+      // ============================================================
+      function renderMemberships() {
+        const list = document.getElementById('membershipsList');
+        const empty = document.getElementById('emptyState');
+        const filtered = categoryFilter === 'All' ? memberships : memberships.filter(m => m.category === categoryFilter);
+        document.getElementById('navCount').textContent = memberships.length ? `· ${memberships.length}` : '';
+        document.getElementById('checkCount').textContent = `${memberships.length} membership${memberships.length === 1 ? '' : 's'}`;
+        empty.classList.toggle('hidden', memberships.length !== 0);
+        list.innerHTML = filtered.map(m => `
+          <article class="rounded-2xl bg-white hairline shadow-card p-5 flex flex-col gap-3 hover:shadow-pop transition">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-start gap-3 min-w-0">
+                <div class="w-9 h-9 rounded-lg bg-ink-100 text-ink-700 grid place-items-center flex-shrink-0">${CATEGORY_ICONS[m.category] || CATEGORY_ICONS.Other}</div>
+                <div class="min-w-0">
+                  <h3 class="font-semibold text-ink-900 truncate">${escapeHtml(m.name)}</h3>
+                  <div class="text-xs text-ink-500">${escapeHtml(m.category)}${m.issuer ? ' · ' + escapeHtml(m.issuer) : ''}</div>
+                </div>
+              </div>
+              <button class="text-ink-400 hover:text-ink-900 text-xs font-medium edit-btn" data-id="${m.id}">Edit</button>
+            </div>
+            <details class="mt-1 group">
+              <summary class="text-xs font-medium text-ink-600 group-open:text-ink-900 flex items-center gap-1.5">
+                <span>${m.benefits.length} benefit${m.benefits.length === 1 ? '' : 's'}</span>
+                <svg class="transition-transform group-open:rotate-180" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </summary>
+              <ul class="mt-2 space-y-1.5">
+                ${m.benefits.map(b => `<li class="text-sm text-ink-700 flex gap-2"><span class="text-ink-300 mt-0.5">•</span><span>${escapeHtml(b.name)}</span></li>`).join('')}
+              </ul>
+            </details>
+          </article>
+        `).join('');
+        document.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', () => openModal(btn.dataset.id)));
+        renderCategoryFilter();
+      }
+
+      function renderCategoryFilter() {
+        const cats = ['All', ...Array.from(new Set(memberships.map(m => m.category)))];
+        const wrap = document.getElementById('categoryFilter');
+        wrap.innerHTML = cats.map(c => `
+          <button data-cat="${escapeHtml(c)}" class="filter-btn text-xs px-3 py-1.5 rounded-full hairline ${c === categoryFilter ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 hover:bg-ink-50'}">${escapeHtml(c)}</button>
+        `).join('');
+        wrap.querySelectorAll('.filter-btn').forEach(b => b.addEventListener('click', () => { categoryFilter = b.dataset.cat; renderMemberships(); }));
+      }
+
+      // ============================================================
+      // MODAL
+      // ============================================================
+      const modal = document.getElementById('modal');
+      document.getElementById('openAddBtn').addEventListener('click', () => openModal(null));
+      modal.querySelectorAll('[data-close]').forEach(el => el.addEventListener('click', closeModal));
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+      function openModal(id) {
+        editingId = id;
+        const m = id ? memberships.find(x => x.id === id) : null;
+        document.getElementById('modalKicker').textContent = m ? 'Edit' : 'Add';
+        document.getElementById('modalTitle').textContent = m ? 'Edit membership' : 'Add a membership';
+        document.getElementById('mName').value = m ? m.name : '';
+        document.getElementById('mCategory').value = m ? m.category : 'Credit card';
+        document.getElementById('librarySearch').value = '';
+        document.getElementById('librarySuggestions').classList.add('hidden');
+        document.getElementById('deleteBtn').classList.toggle('hidden', !m);
+        renderBenefitsBuilder(m ? m.benefits : []);
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+      }
+      function closeModal() {
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+        editingId = null;
+      }
+
+      function renderBenefitsBuilder(benefits) {
+        const wrap = document.getElementById('benefitsBuilder');
+        wrap.innerHTML = '';
+        const list = benefits.length ? benefits : [{ name: '', description: '', tags: [], savings: { type: 'flat', value: 0 }, restrictions: '' }];
+        list.forEach(b => addBenefitRow(b));
+      }
+      function addBenefitRow(b) {
+        const wrap = document.getElementById('benefitsBuilder');
+        const row = document.createElement('div');
+        row.className = 'p-3 rounded-xl bg-ink-50 hairline space-y-2 benefit-row';
+        row.innerHTML = `
+          <div class="flex items-start gap-2">
+            <input class="b-name flex-1 px-3 py-2 rounded-lg bg-white hairline text-sm ring-focus" placeholder="Benefit name (e.g. Free first checked bag)" />
+            <button type="button" class="del-row w-9 h-9 grid place-items-center rounded-lg text-ink-400 hover:bg-white hover:text-red-600">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+            </button>
+          </div>
+          <textarea class="b-desc w-full px-3 py-2 rounded-lg bg-white hairline text-sm ring-focus resize-none" rows="2" placeholder="What is it? Describe in a sentence."></textarea>
+          <div class="grid grid-cols-3 gap-2">
+            <select class="b-type px-3 py-2 rounded-lg bg-white hairline text-sm ring-focus">
+              <option value="flat">Flat $ savings</option>
+              <option value="percent">% off</option>
+              <option value="estimate">Estimated $</option>
+            </select>
+            <input class="b-value px-3 py-2 rounded-lg bg-white hairline text-sm ring-focus" type="number" min="0" step="0.5" placeholder="0" />
+            <input class="b-tags px-3 py-2 rounded-lg bg-white hairline text-sm ring-focus" placeholder="tags: hotel, travel" />
+          </div>
+          <input class="b-rest w-full px-3 py-2 rounded-lg bg-white hairline text-sm ring-focus" placeholder="Fine print (optional)" />
+        `;
+        row.querySelector('.b-name').value = b.name || '';
+        row.querySelector('.b-desc').value = b.description || '';
+        row.querySelector('.b-type').value = b.savings?.type || 'flat';
+        row.querySelector('.b-value').value = b.savings?.value ?? '';
+        row.querySelector('.b-tags').value = (b.tags || []).join(', ');
+        row.querySelector('.b-rest').value = b.restrictions || '';
+        row.querySelector('.del-row').addEventListener('click', () => row.remove());
+        wrap.appendChild(row);
+      }
+      document.getElementById('addBenefitRow').addEventListener('click', () => addBenefitRow({}));
+
+      // Library search
+      const libSearch = document.getElementById('librarySearch');
+      const libSug = document.getElementById('librarySuggestions');
+      libSearch.addEventListener('input', () => {
+        const q = libSearch.value.trim().toLowerCase();
+        if (!q) { libSug.classList.add('hidden'); return; }
+        const matches = LIBRARY.filter(l => l.name.toLowerCase().includes(q) || l.issuer.toLowerCase().includes(q) || l.category.toLowerCase().includes(q)).slice(0, 8);
+        if (!matches.length) { libSug.classList.add('hidden'); return; }
+        libSug.innerHTML = matches.map(l => `
+          <button data-lib="${l.id}" class="lib-pick w-full text-left px-3 py-2.5 hover:bg-ink-50 flex items-center gap-3 border-b border-ink-100 last:border-0">
+            <div class="w-8 h-8 rounded-lg bg-ink-100 text-ink-700 grid place-items-center flex-shrink-0">${CATEGORY_ICONS[l.category] || CATEGORY_ICONS.Other}</div>
+            <div class="min-w-0">
+              <div class="text-sm font-medium text-ink-900 truncate">${escapeHtml(l.name)}</div>
+              <div class="text-xs text-ink-500">${escapeHtml(l.category)} · ${l.benefits.length} benefits</div>
+            </div>
+          </button>
+        `).join('');
+        libSug.classList.remove('hidden');
+        libSug.querySelectorAll('.lib-pick').forEach(b => b.addEventListener('click', () => {
+          const tpl = LIBRARY.find(l => l.id === b.dataset.lib);
+          document.getElementById('mName').value = tpl.name;
+          document.getElementById('mCategory').value = tpl.category;
+          renderBenefitsBuilder(JSON.parse(JSON.stringify(tpl.benefits)));
+          libSug.classList.add('hidden');
+          libSearch.value = '';
+        }));
+      });
+      document.addEventListener('click', (e) => { if (!libSug.contains(e.target) && e.target !== libSearch) libSug.classList.add('hidden'); });
+
+      // Save / delete
+      document.getElementById('saveBtn').addEventListener('click', () => {
+        const name = document.getElementById('mName').value.trim();
+        const category = document.getElementById('mCategory').value;
+        if (!name) { toast('Give your membership a name'); return; }
+        const benefits = Array.from(document.querySelectorAll('.benefit-row')).map(row => {
+          const nm = row.querySelector('.b-name').value.trim();
+          if (!nm) return null;
+          return {
+            name: nm,
+            description: row.querySelector('.b-desc').value.trim(),
+            savings: { type: row.querySelector('.b-type').value, value: parseFloat(row.querySelector('.b-value').value) || 0 },
+            tags: row.querySelector('.b-tags').value.split(',').map(t => t.trim().toLowerCase()).filter(Boolean),
+            restrictions: row.querySelector('.b-rest').value.trim(),
+          };
+        }).filter(Boolean);
+        if (!benefits.length) { toast('Add at least one benefit'); return; }
+        if (editingId) {
+          const m = memberships.find(x => x.id === editingId);
+          Object.assign(m, { name, category, benefits });
+        } else {
+          memberships.unshift({ id: 'm-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name, category, benefits });
+        }
+        save();
+        renderMemberships();
+        closeModal();
+        toast(editingId ? 'Updated' : 'Added');
+      });
+      document.getElementById('deleteBtn').addEventListener('click', () => {
+        if (!editingId) return;
+        if (!confirm('Delete this membership?')) return;
+        memberships = memberships.filter(m => m.id !== editingId);
+        save();
+        renderMemberships();
+        closeModal();
+        toast('Deleted');
+      });
+
+      function toast(msg) {
+        const t = document.getElementById('toast');
+        document.getElementById('toastMsg').textContent = msg;
+        t.classList.remove('hidden');
+        clearTimeout(toast._t);
+        toast._t = setTimeout(() => t.classList.add('hidden'), 1800);
+      }
+
+      // ============================================================
+      // ANALYSIS — match purchase text to benefits.
+      // ============================================================
+      const CATEGORY_LABELS = {
+        flight: 'Flight', hotel: 'Hotel', car: 'Car', rental: 'Rental car', groceries: 'Groceries',
+        restaurant: 'Dining', delivery: 'Food delivery', streaming: 'Streaming', electronics: 'Electronics',
+        retail: 'Retail', gas: 'Gas', travel: 'Travel', insurance: 'Insurance', entertainment: 'Entertainment',
+        themepark: 'Attractions', clothing: 'Clothing', pharmacy: 'Pharmacy', foreign: 'International',
+      };
+
+      function detectTags(text) {
+        const t = ' ' + text.toLowerCase() + ' ';
+        const found = new Set();
+        for (const [tag, words] of Object.entries(KEYWORDS)) {
+          for (const w of words) {
+            if (t.includes(w)) { found.add(tag); break; }
+          }
+        }
+        return found;
+      }
+      function detectPrice(text) {
+        // Match $1,234.56 / $1234 / 1,234 dollars / "around $2400"
+        const re = /\$?\s?([0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]{1,2})?/g;
+        let m, best = 0;
+        while ((m = re.exec(text)) !== null) {
+          const n = parseFloat(m[1].replace(/,/g, ''));
+          if (!isNaN(n) && n > best) best = n;
+        }
+        return best;
+      }
+
+      function analyze() {
+        const text = document.getElementById('purchaseInput').value.trim();
+        const results = document.getElementById('results');
+        if (!text) { results.innerHTML = ''; toast('Describe what you might buy'); return; }
+        if (!memberships.length) {
+          results.innerHTML = emptyResultsCard('Add a membership first', 'Head to "My memberships" and add at least one program. We only match benefits you actually have.');
+          return;
+        }
+        const tags = detectTags(text);
+        const price = detectPrice(text);
+        const matches = [];
+        for (const m of memberships) {
+          for (const b of m.benefits) {
+            const bTags = (b.tags || []).map(t => t.toLowerCase());
+            const overlap = bTags.filter(t => tags.has(t));
+            if (overlap.length === 0) continue;
+            const score = scoreMatch(overlap, bTags, tags);
+            const estSavings = estimateSavings(b, price);
+            matches.push({ membership: m, benefit: b, overlap, score, estSavings });
+          }
+        }
+        matches.sort((a, b) => b.score - a.score || b.estSavings - a.estSavings);
+        renderResults(text, tags, price, matches);
+      }
+
+      function scoreMatch(overlap, bTags, purchaseTags) {
+        let s = overlap.length * 10;
+        // bonus if a strong specific tag matches (e.g. aircanada, marriott, apple)
+        const strong = ['aircanada','marriott','hilton','apple','hertz','cineplex','costco','sportchek','canadiantire','foreign','nexus','lounge'];
+        s += overlap.filter(t => strong.includes(t)).length * 6;
+        // light penalty if benefit is very broad relative to purchase
+        if (bTags.length > 4 && overlap.length === 1) s -= 2;
+        return s;
+      }
+
+      function estimateSavings(benefit, price) {
+        const s = benefit.savings || {};
+        if (!s.value) return 0;
+        if (s.type === 'percent' && price > 0) return Math.round((price * s.value) / 100);
+        if (s.type === 'percent') return Math.round(s.value); // % without price ≈ small estimate
+        return Math.round(s.value);
+      }
+
+      function renderResults(text, tags, price, matches) {
+        const results = document.getElementById('results');
+        if (!matches.length) {
+          results.innerHTML = emptyResultsCard('No matching benefits found', `Nothing in your wallet directly applies to "${escapeHtml(text)}". That doesn't mean there's nothing — try rephrasing, or add another membership.`);
+          return;
+        }
+        const topBySaving = [...matches].sort((a, b) => b.estSavings - a.estSavings);
+        const totalEst = topBySaving.slice(0, 5).reduce((acc, m) => acc + (m.estSavings || 0), 0);
+        const tagsBadges = Array.from(tags).slice(0, 6).map(t => `<span class="chip text-ink-500 bg-ink-100 px-2 py-0.5 rounded-full">${escapeHtml(CATEGORY_LABELS[t] || t)}</span>`).join(' ');
+
+        results.innerHTML = `
+          <div class="fade-in rounded-2xl bg-ink-900 text-white shadow-pop p-6 sm:p-7 flex flex-col sm:flex-row sm:items-center gap-5 justify-between">
+            <div class="space-y-1.5">
+              <div class="chip text-ink-300">Estimated savings</div>
+              <div class="font-display text-4xl sm:text-5xl">~${formatMoney(totalEst)}<span class="text-ink-400 text-base font-sans align-middle ml-2">across top matches</span></div>
+              <div class="text-sm text-ink-300">${matches.length} relevant benefit${matches.length === 1 ? '' : 's'} from your wallet${price ? ` · purchase ≈ ${formatMoney(price)}` : ''}</div>
+              <div class="pt-2 flex flex-wrap gap-1.5">${tagsBadges}</div>
+            </div>
+            <div class="flex-shrink-0 grid grid-cols-3 gap-3 text-center">
+              <div>
+                <div class="font-display text-2xl">${matches.length}</div>
+                <div class="text-[10px] uppercase tracking-wider text-ink-400">benefits</div>
+              </div>
+              <div>
+                <div class="font-display text-2xl">${new Set(matches.map(m => m.membership.id)).size}</div>
+                <div class="text-[10px] uppercase tracking-wider text-ink-400">programs</div>
+              </div>
+              <div>
+                <div class="font-display text-2xl">${tags.size}</div>
+                <div class="text-[10px] uppercase tracking-wider text-ink-400">signals</div>
+              </div>
+            </div>
+          </div>
+
+          <ol class="space-y-3">
+            ${matches.map((m, i) => renderMatchCard(m, i)).join('')}
+          </ol>
+
+          <p class="text-xs text-ink-400 mt-4">Estimates assume you meet the program terms and use the right booking channel. Always verify with the issuer before relying on a benefit.</p>
+        `;
+      }
+
+      function renderMatchCard(m, i) {
+        const savingsLabel = (() => {
+          const s = m.benefit.savings || {};
+          if (s.type === 'percent') return `${s.value}% off`;
+          if (s.type === 'estimate') return `~${formatMoney(s.value)} value`;
+          return `${formatMoney(s.value)} value`;
+        })();
+        return `
+          <li class="fade-in rounded-2xl bg-white hairline shadow-card p-5 sm:p-6 flex flex-col sm:flex-row gap-5">
+            <div class="flex-shrink-0 sm:w-44 flex sm:flex-col items-start gap-3">
+              <div class="w-10 h-10 rounded-lg bg-ink-100 text-ink-700 grid place-items-center">${CATEGORY_ICONS[m.membership.category] || CATEGORY_ICONS.Other}</div>
+              <div class="min-w-0">
+                <div class="text-[11px] uppercase tracking-wider text-ink-400 font-semibold">#${i + 1} match</div>
+                <div class="text-sm font-medium text-ink-900 leading-tight">${escapeHtml(m.membership.name)}</div>
+                <div class="text-xs text-ink-500">${escapeHtml(m.membership.category)}</div>
+              </div>
+            </div>
+            <div class="flex-1 space-y-2">
+              <div class="flex items-start justify-between gap-3">
+                <h4 class="font-semibold text-ink-900 text-[17px] leading-snug">${escapeHtml(m.benefit.name)}</h4>
+                <div class="flex-shrink-0 text-right">
+                  <div class="font-display text-accent-700 text-2xl leading-none">~${formatMoney(m.estSavings)}</div>
+                  <div class="text-[10px] uppercase tracking-wider text-ink-400 mt-0.5">est. on this</div>
+                </div>
+              </div>
+              <p class="text-sm text-ink-700">${escapeHtml(m.benefit.description || '')}</p>
+              <div class="flex flex-wrap items-center gap-1.5 pt-1">
+                <span class="chip text-accent-700 bg-accent-50 px-2 py-0.5 rounded-full">${escapeHtml(savingsLabel)}</span>
+                ${m.overlap.slice(0, 4).map(t => `<span class="chip text-ink-500 bg-ink-100 px-2 py-0.5 rounded-full">${escapeHtml(CATEGORY_LABELS[t] || t)}</span>`).join('')}
+              </div>
+              ${m.benefit.restrictions ? `
+                <details class="pt-1">
+                  <summary class="text-xs text-ink-500 hover:text-ink-900 inline-flex items-center gap-1">
+                    Fine print
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="transition-transform"><polyline points="6 9 12 15 18 9"/></svg>
+                  </summary>
+                  <p class="text-xs text-ink-600 mt-1.5 leading-relaxed">${escapeHtml(m.benefit.restrictions)}</p>
+                </details>
+              ` : ''}
+            </div>
+          </li>
+        `;
+      }
+
+      function emptyResultsCard(title, body) {
+        return `
+          <div class="fade-in rounded-2xl bg-white hairline shadow-card p-8 text-center">
+            <div class="mx-auto w-12 h-12 rounded-full bg-ink-100 text-ink-500 grid place-items-center mb-3">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            </div>
+            <h3 class="font-display text-2xl text-ink-900">${escapeHtml(title)}</h3>
+            <p class="text-sm text-ink-600 mt-1 max-w-md mx-auto">${body}</p>
+          </div>
+        `;
+      }
+
+      // ============================================================
+      // UTILITIES
+      // ============================================================
+      function escapeHtml(s) {
+        return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      }
+      function formatMoney(n) {
+        if (!n) return '$0';
+        return '$' + Math.round(n).toLocaleString('en-CA');
+      }
+
+      // ============================================================
+      // EVENTS & BOOT
+      // ============================================================
+      document.querySelectorAll('.example-btn').forEach(b => b.addEventListener('click', () => {
+        document.getElementById('purchaseInput').value = b.dataset.example;
+        analyze();
+      }));
+      document.getElementById('analyzeBtn').addEventListener('click', analyze);
+      document.getElementById('purchaseInput').addEventListener('keydown', (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); analyze(); }
+      });
+
+      load();
+      renderMemberships();
+    </script>
+  </body>
+</html>
