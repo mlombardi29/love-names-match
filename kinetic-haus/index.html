@@ -1,0 +1,1230 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0a0a0b" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<title>Kinetic Haus — Train</title>
+
+<!-- ============================================================= -->
+<!--  KINETIC HAUS — Single-file workout tracker                   -->
+<!--  Tech: HTML + Tailwind (CDN) + vanilla JS + Chart.js (CDN)    -->
+<!--  Backend: Google Apps Script Web App -> Google Sheet          -->
+<!--                                                               -->
+<!--  SETUP (non-developer friendly): see SETUP.md in this folder. -->
+<!--  Quick version:                                               -->
+<!--   1. Create a Google Sheet.                                   -->
+<!--   2. Extensions > Apps Script, paste Code.gs, Deploy as Web   -->
+<!--      App (Execute as: Me, Who has access: Anyone).            -->
+<!--   3. Copy the Web App URL.                                    -->
+<!--   4. Open this app, tap the gear (top-right) and paste the    -->
+<!--      URL. Done. Data lives in your Sheet.                     -->
+<!--                                                               -->
+<!--  Works offline / in sandboxes too: if no URL is set (or the   -->
+<!--  network/localStorage is blocked) the app keeps everything in -->
+<!--  memory + localStorage and never crashes.                     -->
+<!-- ============================================================= -->
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        colors: {
+          ink:      '#0a0a0b',   // page background (near black)
+          panel:    '#141417',   // raised surfaces
+          panel2:   '#1c1c21',   // deeper surfaces / inputs
+          line:     '#2a2a31',   // borders
+          mute:     '#8b8b96',   // muted text
+          volt:     '#d6ff3f',   // energetic accent (themeable)
+          voltdim:  '#9fc01f',
+        },
+        fontFamily: {
+          display: ['"Chakra Petch"', 'system-ui', 'sans-serif'],
+          sans:    ['Inter', 'system-ui', 'sans-serif'],
+        },
+        // register numeric weight utilities (font-400 … font-800) used throughout
+        fontWeight: { 400:'400', 500:'500', 600:'600', 700:'700', 800:'800' },
+      }
+    }
+  }
+</script>
+
+<style>
+  :root { --volt:#d6ff3f; }
+  html,body{background:#0a0a0b;}
+  body{ -webkit-tap-highlight-color:transparent; font-family:Inter,system-ui,sans-serif; color:#f4f4f6; overscroll-behavior-y:none; }
+  *{ -webkit-touch-callout:none; }
+  ::-webkit-scrollbar{ width:0; height:0; }
+  input,select,textarea{ font-size:16px; } /* prevent iOS zoom */
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+  input[type=number]{ -moz-appearance:textfield; }
+
+  .safe-bottom{ padding-bottom:calc(env(safe-area-inset-bottom) + 86px); }
+  .nav-safe{ padding-bottom:env(safe-area-inset-bottom); }
+
+  .glass{ background:rgba(20,20,23,.82); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); }
+  .card{ background:#141417; border:1px solid #22222a; border-radius:20px; }
+  .btn-press{ transition:transform .08s ease, background .15s ease, border-color .15s ease; }
+  .btn-press:active{ transform:scale(.97); }
+
+  .volt-glow{ box-shadow:0 0 0 1px rgba(214,255,63,.25), 0 8px 30px -8px rgba(214,255,63,.35); }
+  .accent-text{ color:var(--volt); }
+
+  /* view transitions */
+  .view{ animation:fade .28s ease both; }
+  @keyframes fade{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
+
+  .pulse-dot{ animation:pulse 1.6s infinite; }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
+
+  /* completed set row */
+  .set-done{ background:linear-gradient(90deg, rgba(214,255,63,.10), rgba(214,255,63,.02)); border-color:rgba(214,255,63,.35)!important; }
+
+  .chip{ background:#1c1c21; border:1px solid #2a2a31; }
+  .field{ background:#1c1c21; border:1px solid #2a2a31; border-radius:14px; }
+  .field:focus-within{ border-color:var(--volt); }
+  textarea.field, input.field, select.field{ outline:none; }
+
+  .toast-in{ animation:toastIn .25s ease both; }
+  @keyframes toastIn{ from{opacity:0; transform:translateY(12px);} to{opacity:1; transform:none;} }
+
+  .modal-back{ animation:fade .2s ease both; }
+  .sheet{ animation:sheetUp .3s cubic-bezier(.22,1,.36,1) both; }
+  @keyframes sheetUp{ from{transform:translateY(100%);} to{transform:none;} }
+
+  .hidden-imp{ display:none!important; }
+  .spin{ animation:spin 1s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg);} }
+</style>
+</head>
+<body class="font-sans">
+
+<!-- ========================== APP SHELL ========================== -->
+<div id="app" class="max-w-md mx-auto min-h-screen relative"></div>
+
+<!-- Bottom navigation -->
+<nav id="bottomNav" class="glass fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md border-t border-line z-40 nav-safe">
+  <div class="grid grid-cols-4">
+    <button data-nav="home"     class="nav-btn flex flex-col items-center gap-1 py-3 text-mute btn-press">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 11.5 12 4l9 7.5M5 10v9a1 1 0 0 0 1 1h4v-5h4v5h4a1 1 0 0 0 1-1v-9"/></svg>
+      <span class="text-[11px] font-semibold tracking-wide">Home</span>
+    </button>
+    <button data-nav="log"      class="nav-btn flex flex-col items-center gap-1 py-3 text-mute btn-press">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.5 6.5h11M4 9.5h2M18 9.5h2M4 14.5h2M18 14.5h2M6.5 17.5h11M8 9v6M16 9v6"/></svg>
+      <span class="text-[11px] font-semibold tracking-wide">Log</span>
+    </button>
+    <button data-nav="history"  class="nav-btn flex flex-col items-center gap-1 py-3 text-mute btn-press">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 2M3.5 12a8.5 8.5 0 1 0 2.2-5.7M4 4v3h3"/></svg>
+      <span class="text-[11px] font-semibold tracking-wide">History</span>
+    </button>
+    <button data-nav="progress" class="nav-btn flex flex-col items-center gap-1 py-3 text-mute btn-press">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 19V5M4 19h16M8 16l3.5-4 3 2.5L20 8"/></svg>
+      <span class="text-[11px] font-semibold tracking-wide">Progress</span>
+    </button>
+  </div>
+</nav>
+
+<!-- Toast + modal containers -->
+<div id="toast" class="fixed left-1/2 -translate-x-1/2 bottom-24 z-[60] pointer-events-none"></div>
+<div id="modalRoot" class="fixed inset-0 z-50 hidden-imp"></div>
+
+<script>
+/* =================================================================
+   KINETIC HAUS  —  app logic
+   ================================================================= */
+
+/* ---------- Brand logo (inline SVG, themeable via currentColor) ---------- */
+/* Stylized interlocking K + H monogram inspired by the Kinetic Haus mark:
+   flared vertical pillars + central crossbar + K bowl. */
+function MONOGRAM(size, color){
+  color = color || '#ffffff';
+  return `<svg viewBox="0 0 120 200" width="${size}" height="${size*200/120}" fill="${color}" aria-label="Kinetic Haus">
+    <!-- left outer pillar (flared ends) -->
+    <path d="M6 8c10 0 14 6 14 16v48c0 12 8 18 18 18v14c-10 0-18 6-18 18v48c0 10-4 16-14 16-2 0-4 0-6-.5v-13c5 0 7-3 7-8v-50c0-12 6-19 15-22-9-3-15-10-15-22V29.5c0-5-2-8-7-8V8.5C2 8 4 8 6 8z"/>
+    <!-- center-left pillar = K stem -->
+    <rect x="38" y="6" width="13" height="188" rx="6"/>
+    <!-- K diagonal upper (curved bowl) -->
+    <path d="M51 96c14-2 24-12 30-30 3-9 5-18 5-30h13c0 16-3 28-8 40-5 12-13 21-24 26v-6z"/>
+    <!-- center-right pillar = H stem -->
+    <rect x="69" y="6" width="13" height="188" rx="6"/>
+    <!-- H crossbar -->
+    <rect x="44" y="92" width="44" height="13" rx="5"/>
+    <!-- right outer pillar (flared ends) -->
+    <path d="M114 8c-10 0-14 6-14 16v48c0 12-8 18-18 18v14c10 0 18 6 18 18v48c0 10 4 16 14 16 2 0 4 0 6-.5v-13c-5 0-7-3-7-8v-50c0-12-6-19-15-22 9-3 15-10 15-22V29.5c0-5 2-8 7-8V8.5c-2-.5-4-.5-6-.5z"/>
+  </svg>`;
+}
+function WORDMARK(){
+  // "KINETIC HAUS" set in the brand's geometric display face (angular A via CSS not possible cleanly, use font)
+  return `<div class="leading-[0.92] font-display font-700 tracking-[.18em] text-white">
+      <div class="text-[15px]">KINETIC</div>
+      <div class="text-[15px]">HAUS</div>
+    </div>`;
+}
+
+/* ---------- safe storage (never throws in sandboxes) ---------- */
+const Store = (() => {
+  let ok = true, mem = {};
+  try { const k='__kh_test'; localStorage.setItem(k,'1'); localStorage.removeItem(k); }
+  catch(e){ ok = false; }
+  return {
+    get(k){ try { return ok ? localStorage.getItem(k) : (mem[k] ?? null); } catch(e){ return mem[k] ?? null; } },
+    set(k,v){ try { ok ? localStorage.setItem(k,v) : (mem[k]=v); } catch(e){ mem[k]=v; } },
+    del(k){ try { ok ? localStorage.removeItem(k) : (delete mem[k]); } catch(e){ delete mem[k]; } },
+  };
+})();
+
+/* ---------- global state ---------- */
+const KEY = { url:'kh_api_url', cache:'kh_cache', unit:'kh_unit' };
+const state = {
+  apiUrl: Store.get(KEY.url) || '',
+  unit:   Store.get(KEY.unit) || 'kg',
+  days:   {},        // name -> { name, exercises:[{name,sets,order}] }
+  workouts: [],      // [{workoutId,date,name,status,notes,exercises:[{name,order,notes,sets:[{setNumber,weight,reps,unit,completed}]}], ...}]
+  active: null,      // workout currently open in the logger/editor
+  view:   'home',
+  loading:false,
+  online: false,
+};
+
+/* ---------- tiny utils ---------- */
+const $  = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+const uid = (p='w')=> p+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const esc = s => (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const todayISO = ()=> new Date().toISOString().slice(0,10);
+const fmtDate = iso => { const d=new Date(iso+'T00:00:00'); if(isNaN(d)) return iso;
+  return d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'}); };
+const fmtDateShort = iso => { const d=new Date(iso+'T00:00:00'); if(isNaN(d)) return iso;
+  return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'2-digit'}); };
+const num = v => { const n=parseFloat(v); return isNaN(n)?0:n; };
+
+function workoutVolume(w){ let v=0; (w.exercises||[]).forEach(e=>e.sets.forEach(s=>{ if(s.completed) v+=num(s.weight)*num(s.reps); })); return v; }
+function workoutSetsDone(w){ let c=0; (w.exercises||[]).forEach(e=>e.sets.forEach(s=>{ if(s.completed) c++; })); return c; }
+function workoutSetsTotal(w){ let c=0; (w.exercises||[]).forEach(e=>c+=e.sets.length); return c; }
+const fmtVol = v => v>=1000 ? (v/1000).toFixed(1).replace(/\.0$/,'')+'k' : Math.round(v).toString();
+
+/* ---------- API layer ---------- */
+async function apiGet(){
+  if(!state.apiUrl) return null;
+  const r = await fetch(state.apiUrl + '?action=getData', { method:'GET' });
+  if(!r.ok) throw new Error('GET '+r.status);
+  return await r.json();
+}
+async function apiPost(action, payload){
+  if(!state.apiUrl) return { ok:false, offline:true };
+  // text/plain avoids a CORS preflight that Apps Script can't answer
+  const r = await fetch(state.apiUrl, {
+    method:'POST',
+    headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action, ...payload })
+  });
+  if(!r.ok) throw new Error('POST '+r.status);
+  return await r.json();
+}
+
+/* ---------- persistence helpers ---------- */
+function cacheSave(){
+  Store.set(KEY.cache, JSON.stringify({ days:state.days, workouts:state.workouts, unit:state.unit }));
+}
+function cacheLoad(){
+  try{
+    const c = JSON.parse(Store.get(KEY.cache)||'{}');
+    if(c.days) state.days = c.days;
+    if(c.workouts) state.workouts = c.workouts;
+    if(c.unit) state.unit = c.unit;
+  }catch(e){}
+}
+
+let saveTimer=null, saveQueue=new Set();
+function queueSaveWorkout(w){
+  // optimistic local update
+  const i = state.workouts.findIndex(x=>x.workoutId===w.workoutId);
+  if(i>=0) state.workouts[i]=w; else state.workouts.unshift(w);
+  cacheSave();
+  saveQueue.add(w.workoutId);
+  setSaveFlag('saving');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(flushSaves, 700);
+}
+async function flushSaves(){
+  if(!state.apiUrl){ setSaveFlag('local'); return; }
+  const ids=[...saveQueue]; saveQueue.clear();
+  try{
+    for(const id of ids){
+      const w = state.workouts.find(x=>x.workoutId===id);
+      if(w) await apiPost('saveWorkout', { workout:w });
+    }
+    setSaveFlag('saved');
+  }catch(e){ setSaveFlag('local'); }
+}
+function setSaveFlag(s){
+  const el=$('#saveFlag'); if(!el) return;
+  const map={ saving:['Saving…','text-mute'], saved:['Saved','accent-text'], local:['Saved on device','text-mute'] };
+  const [t,c]=map[s]||['',''];
+  el.className='text-[11px] font-semibold '+c;
+  el.textContent=t;
+}
+
+/* ---------- toast ---------- */
+function toast(msg, kind='ok'){
+  const root=$('#toast');
+  const color = kind==='err' ? 'border-red-500/50 text-red-300' : 'border-volt/40 accent-text';
+  const el=document.createElement('div');
+  el.className=`toast-in glass ${color} border px-4 py-2.5 rounded-full text-sm font-semibold mb-2 shadow-xl`;
+  el.textContent=msg;
+  root.appendChild(el);
+  setTimeout(()=>{ el.style.transition='opacity .3s'; el.style.opacity='0'; setTimeout(()=>el.remove(),300); }, 1900);
+}
+
+/* =================================================================
+   BOOT
+   ================================================================= */
+async function boot(){
+  cacheLoad();
+  bindNav();
+  bindDelegation();
+  render();              // paint from cache instantly
+  if(state.apiUrl){
+    state.loading=true;
+    try{
+      const data = await apiGet();
+      if(data && data.ok){
+        state.online=true;
+        state.days = data.days||{};
+        state.workouts = (data.workouts||[]).sort(sortWorkouts);
+        if(data.settings && data.settings.unit){ state.unit=data.settings.unit; Store.set(KEY.unit,state.unit); }
+        cacheSave();
+      }
+    }catch(e){ toast('Offline — using device data', 'err'); }
+    state.loading=false;
+    render();
+  } else {
+    // first run: nudge to connect, but app is fully usable offline
+    if(!state.workouts.length && !Object.keys(state.days).length) seedExampleDays();
+  }
+}
+function sortWorkouts(a,b){
+  const ip = (a.status==='in_progress')?1:0, ip2=(b.status==='in_progress')?1:0;
+  if(ip!==ip2) return ip2-ip;            // in-progress first
+  return (b.date||'').localeCompare(a.date||'') || (b.updatedAt||0)-(a.updatedAt||0);
+}
+function seedExampleDays(){
+  state.days = {
+    'Legs & Functional Core':{ name:'Legs & Functional Core', exercises:[
+      {name:'Back Squat',sets:4,order:0},{name:'Romanian Deadlift',sets:3,order:1},
+      {name:'Walking Lunge',sets:3,order:2},{name:'Hanging Leg Raise',sets:3,order:3}]},
+    'Chest & Arms':{ name:'Chest & Arms', exercises:[
+      {name:'Bench Press',sets:4,order:0},{name:'Incline Dumbbell Press',sets:3,order:1},
+      {name:'Cable Fly',sets:3,order:2},{name:'EZ-Bar Curl',sets:3,order:3},{name:'Tricep Pushdown',sets:3,order:4}]},
+    'Back, Shoulders & Core':{ name:'Back, Shoulders & Core', exercises:[
+      {name:'Deadlift',sets:4,order:0},{name:'Pull-Up',sets:3,order:1},
+      {name:'Seated Row',sets:3,order:2},{name:'Overhead Press',sets:3,order:3},{name:'Plank',sets:3,order:4}]},
+  };
+  cacheSave(); render();
+}
+
+/* =================================================================
+   NAVIGATION
+   ================================================================= */
+function bindNav(){
+  $$('#bottomNav [data-nav]').forEach(b=>b.addEventListener('click',()=>{
+    const v=b.dataset.nav;
+    if(v==='log'){ openLogTab(); return; }
+    go(v);
+  }));
+}
+/* Delegated clicks for actions that carry free-text names (apostrophe-safe:
+   dataset values are decoded as text, never executed as JS). */
+function bindDelegation(){
+  document.addEventListener('click', e=>{
+    const t=e.target.closest('[data-act]'); if(!t) return;
+    const act=t.dataset.act, val=t.dataset.val||'';
+    if(act==='startDay')      startFromDay(val);
+    else if(act==='editDay')  openDayEditor(val);
+    else if(act==='openEx')   openExercise(val);
+    else if(act==='pickSugg') pickSugg(val);
+  });
+}
+function go(view){ state.view=view; render(); window.scrollTo({top:0,behavior:'instant'}); }
+function setActiveNav(){
+  $$('#bottomNav [data-nav]').forEach(b=>{
+    const on = b.dataset.nav===state.view || (state.view==='logger' && b.dataset.nav==='log');
+    b.classList.toggle('text-white', on);
+    b.classList.toggle('accent-text', false);
+    b.querySelector('span').style.color = on ? 'var(--volt)' : '';
+    b.querySelector('svg').style.color = on ? 'var(--volt)' : '';
+  });
+}
+function openLogTab(){
+  if(state.active){ go('logger'); return; }
+  const ip = state.workouts.find(w=>w.status==='in_progress');
+  if(ip){ state.active=structuredClone(ip); go('logger'); return; }
+  openStartSheet();
+}
+
+/* =================================================================
+   RENDER ROUTER
+   ================================================================= */
+function render(){
+  const app=$('#app');
+  let html='';
+  switch(state.view){
+    case 'home':     html=viewHome(); break;
+    case 'logger':   html=viewLogger(); break;
+    case 'history':  html=viewHistory(); break;
+    case 'progress': html=viewProgress(); break;
+    case 'exercise': html=viewExerciseDetail(); break;
+    case 'days':     html=viewDays(); break;
+    default:         html=viewHome();
+  }
+  app.innerHTML = `<div class="view safe-bottom">${html}</div>`;
+  setActiveNav();
+  afterRender();
+}
+function afterRender(){
+  if(state.view==='logger') wireLogger();
+  if(state.view==='progress') drawOverviewChart();
+  if(state.view==='exercise') drawExerciseChart();
+}
+
+/* =================================================================
+   HEADER (brand hero)
+   ================================================================= */
+function brandBar(){
+  return `<div class="flex items-center justify-between pt-5 px-5">
+    <div class="flex items-center gap-3">
+      <div class="w-9">${MONOGRAM(34)}</div>
+      ${WORDMARK()}
+    </div>
+    <div class="flex items-center gap-2">
+      <span id="connDot" class="w-2 h-2 rounded-full ${state.apiUrl?(state.online?'bg-volt':'bg-yellow-500'):'bg-mute'}"></span>
+      <button onclick="openSettings()" class="w-10 h-10 rounded-full chip btn-press flex items-center justify-center text-mute">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.4 13a7.8 7.8 0 0 0 0-2l2-1.5-2-3.4-2.4 1a7.7 7.7 0 0 0-1.7-1l-.4-2.6H10.9l-.4 2.6a7.7 7.7 0 0 0-1.7 1l-2.4-1-2 3.4L4.6 11a7.8 7.8 0 0 0 0 2l-2 1.5 2 3.4 2.4-1c.5.4 1.1.7 1.7 1l.4 2.6h3.8l.4-2.6c.6-.3 1.2-.6 1.7-1l2.4 1 2-3.4-2-1.5Z"/></svg>
+      </button>
+    </div>
+  </div>`;
+}
+
+/* =================================================================
+   HOME
+   ================================================================= */
+function viewHome(){
+  const ip = state.workouts.find(w=>w.status==='in_progress');
+  const recents = state.workouts.filter(w=>w.status==='completed').slice(0,3);
+  const dayNames = Object.keys(state.days);
+
+  return `
+  ${brandBar()}
+
+  <div class="px-5 mt-6">
+    <p class="text-mute text-sm font-medium">${greeting()}</p>
+    <h1 class="font-display font-700 text-3xl mt-1 tracking-tight">Ready to <span class="accent-text">move</span>.</h1>
+  </div>
+
+  ${ ip ? resumeCard(ip) : '' }
+
+  <!-- Free form CTA -->
+  <div class="px-5 mt-5">
+    <button onclick="startFreeForm()" class="btn-press w-full rounded-2xl py-5 font-display font-700 text-lg tracking-wide text-ink volt-glow flex items-center justify-center gap-2" style="background:var(--volt)">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
+      FREE FORM WORKOUT
+    </button>
+  </div>
+
+  <!-- Quick start days -->
+  <div class="px-5 mt-7 flex items-center justify-between">
+    <h2 class="font-display font-600 text-sm tracking-[.15em] text-mute">START A DAY</h2>
+    <button onclick="go('days')" class="text-xs font-semibold accent-text btn-press">Manage</button>
+  </div>
+  <div class="px-5 mt-3 space-y-3">
+    ${ dayNames.length ? dayNames.map(n=>dayQuickCard(state.days[n])).join('') :
+      `<div class="card p-5 text-center text-mute text-sm">No workout days yet. <button onclick="openDayEditor()" class="accent-text font-semibold">Create one</button></div>` }
+  </div>
+
+  <!-- Recent workouts -->
+  <div class="px-5 mt-8 flex items-center justify-between">
+    <h2 class="font-display font-600 text-sm tracking-[.15em] text-mute">RECENT</h2>
+    ${ state.workouts.length>3 ? `<button onclick="go('history')" class="text-xs font-semibold accent-text btn-press">See all</button>`:'' }
+  </div>
+  <div class="px-5 mt-3 space-y-3">
+    ${ recents.length ? recents.map(recentCard).join('') :
+      `<div class="card p-5 text-center text-mute text-sm">Your finished workouts will appear here.</div>` }
+  </div>
+  `;
+}
+function greeting(){ const h=new Date().getHours(); return h<12?'Good morning':h<18?'Good afternoon':'Good evening'; }
+
+function resumeCard(w){
+  return `<div class="px-5 mt-5">
+    <div class="card p-5 relative overflow-hidden" style="border-color:rgba(214,255,63,.4)">
+      <div class="flex items-center gap-2 text-xs font-bold tracking-widest accent-text"><span class="w-2 h-2 rounded-full bg-volt pulse-dot" style="background:var(--volt)"></span> IN PROGRESS</div>
+      <h3 class="font-display font-700 text-2xl mt-2">${esc(w.name)}</h3>
+      <p class="text-mute text-sm mt-1">${workoutSetsDone(w)}/${workoutSetsTotal(w)} sets · ${fmtVol(workoutVolume(w))} ${state.unit} volume</p>
+      <button onclick="resumeWorkout('${w.workoutId}')" class="btn-press mt-4 w-full rounded-xl py-4 font-display font-700 text-lg tracking-wide text-ink" style="background:var(--volt)">RESUME</button>
+    </div>
+  </div>`;
+}
+function dayQuickCard(d){
+  const ex = d.exercises||[];
+  return `<button data-act="startDay" data-val="${esc(d.name)}" class="btn-press w-full card p-4 text-left flex items-center justify-between">
+    <div class="min-w-0">
+      <h3 class="font-display font-600 text-lg truncate">${esc(d.name)}</h3>
+      <p class="text-mute text-xs mt-0.5 truncate">${ex.length} exercises · ${ex.reduce((a,e)=>a+(e.sets||0),0)} sets</p>
+    </div>
+    <div class="w-10 h-10 rounded-full chip flex items-center justify-center shrink-0 ml-3" style="color:var(--volt)">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m9 6 6 6-6 6"/></svg>
+    </div>
+  </button>`;
+}
+function recentCard(w){
+  return `<div class="card p-4">
+    <div class="flex items-start justify-between gap-3">
+      <div class="min-w-0">
+        <h3 class="font-display font-600 text-lg truncate">${esc(w.name)}</h3>
+        <p class="text-mute text-xs mt-0.5">${fmtDate(w.date)}</p>
+      </div>
+      <button onclick="editWorkout('${w.workoutId}')" class="chip btn-press text-xs font-semibold px-3 py-2 rounded-lg shrink-0">EDIT</button>
+    </div>
+    <div class="flex gap-4 mt-3 text-sm">
+      <div><span class="font-display font-700 text-base">${(w.exercises||[]).length}</span> <span class="text-mute text-xs">exercises</span></div>
+      <div><span class="font-display font-700 text-base">${workoutSetsDone(w)}</span> <span class="text-mute text-xs">sets</span></div>
+      <div><span class="font-display font-700 text-base accent-text">${fmtVol(workoutVolume(w))}</span> <span class="text-mute text-xs">${state.unit}</span></div>
+    </div>
+  </div>`;
+}
+
+/* =================================================================
+   START FLOWS
+   ================================================================= */
+function startFreeForm(){
+  state.active = { workoutId:uid(), date:todayISO(), name:'Free Form', status:'in_progress', notes:'', exercises:[], updatedAt:Date.now() };
+  queueSaveWorkout(state.active);
+  go('logger');
+}
+function startFromDay(name){
+  const d=state.days[name]; if(!d) return;
+  const exercises=(d.exercises||[]).slice().sort((a,b)=>a.order-b.order).map((e,i)=>({
+    name:e.name, order:i, notes:'',
+    sets:Array.from({length:Math.max(1,e.sets||1)},(_,k)=>({setNumber:k+1,weight:'',reps:'',unit:state.unit,completed:false}))
+  }));
+  state.active={ workoutId:uid(), date:todayISO(), name:d.name, status:'in_progress', notes:'', exercises, updatedAt:Date.now() };
+  queueSaveWorkout(state.active);
+  go('logger');
+}
+function resumeWorkout(id){
+  const w=state.workouts.find(x=>x.workoutId===id); if(!w) return;
+  state.active=structuredClone(w); go('logger');
+}
+function editWorkout(id){
+  const w=state.workouts.find(x=>x.workoutId===id); if(!w) return;
+  state.active=structuredClone(w); go('logger');
+}
+
+/* =================================================================
+   LOGGER  (active workout / editor)
+   ================================================================= */
+function viewLogger(){
+  const w=state.active;
+  if(!w) return `<div class="px-5 pt-20 text-center text-mute">No active workout.<br><button onclick="openStartSheet()" class="accent-text font-semibold mt-3">Start one</button></div>`;
+  const done = w.status==='completed';
+  return `
+  <div class="glass sticky top-0 z-20 px-4 pt-4 pb-3 border-b border-line">
+    <div class="flex items-center justify-between gap-2">
+      <button onclick="leaveLogger()" class="w-10 h-10 rounded-full chip btn-press flex items-center justify-center text-mute shrink-0">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m15 6-6 6 6 6"/></svg>
+      </button>
+      <input id="woName" value="${esc(w.name)}" class="bg-transparent text-center font-display font-700 text-xl flex-1 min-w-0 outline-none" />
+      <div class="w-10 text-right"><span id="saveFlag" class="text-[11px] font-semibold text-mute"></span></div>
+    </div>
+    <div class="flex items-center justify-center gap-4 mt-2 text-xs">
+      <button onclick="pickDate()" class="text-mute btn-press flex items-center gap-1">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M7 3v3M17 3v3M4 8h16M5 5h14v15H5z"/></svg>
+        <span id="woDateLbl">${fmtDate(w.date)}</span>
+      </button>
+      <span class="text-line">|</span>
+      <span class="text-mute"><b id="statSets" class="text-white font-display">${workoutSetsDone(w)}</b>/${workoutSetsTotal(w)} sets</span>
+      <span class="text-line">|</span>
+      <span class="text-mute"><b id="statVol" class="accent-text font-display">${fmtVol(workoutVolume(w))}</b> ${state.unit}</span>
+    </div>
+    ${ done ? `<div class="mt-2 text-center text-[11px] font-bold tracking-widest text-yellow-400">EDITING COMPLETED WORKOUT</div>`:'' }
+  </div>
+
+  <div id="exList" class="px-4 pt-4 space-y-4">
+    ${ w.exercises.map((e,i)=>exerciseCard(e,i)).join('') }
+  </div>
+
+  <div class="px-4 mt-4">
+    <button onclick="openAddExercise()" class="btn-press w-full rounded-2xl py-4 chip border-dashed font-display font-600 tracking-wide text-mute flex items-center justify-center gap-2">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
+      ADD EXERCISE
+    </button>
+  </div>
+
+  <!-- workout notes -->
+  <div class="px-4 mt-4">
+    <textarea id="woNotes" rows="2" placeholder="Workout notes…" class="field w-full p-3 text-sm placeholder:text-mute resize-none">${esc(w.notes||'')}</textarea>
+  </div>
+
+  <div class="px-4 mt-5 grid grid-cols-2 gap-3">
+    <button onclick="saveAndLater()" class="btn-press rounded-2xl py-4 chip font-display font-600 tracking-wide">SAVE & LATER</button>
+    <button onclick="finishWorkout()" class="btn-press rounded-2xl py-4 font-display font-700 tracking-wide text-ink" style="background:var(--volt)">${done?'DONE':'FINISH'}</button>
+  </div>
+  <div class="px-4 mt-3"><button onclick="discardWorkout()" class="w-full text-center text-xs font-semibold text-red-400/80 py-2 btn-press">${done?'Delete this workout':'Discard workout'}</button></div>
+  `;
+}
+
+function exerciseCard(e,i){
+  return `<div class="card p-4" data-ex="${i}">
+    <div class="flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="font-display font-700 text-lg truncate">${esc(e.name)}</span>
+      </div>
+      <button onclick="exMenu(${i})" class="w-9 h-9 rounded-full chip btn-press flex items-center justify-center text-mute shrink-0">
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+      </button>
+    </div>
+
+    <div class="grid grid-cols-[34px_1fr_1fr_50px] gap-2 mt-3 px-1 text-[10px] font-bold tracking-widest text-mute">
+      <div class="text-center">SET</div><div class="text-center">${state.unit.toUpperCase()}</div><div class="text-center">REPS</div><div class="text-center">✓</div>
+    </div>
+    <div class="space-y-2 mt-1" data-sets="${i}">
+      ${ e.sets.map((s,j)=>setRow(i,j,s)).join('') }
+    </div>
+
+    <div class="flex gap-2 mt-3">
+      <button onclick="addSet(${i})" class="btn-press flex-1 rounded-xl py-2.5 chip text-xs font-bold tracking-wide text-mute">+ SET</button>
+      <button onclick="exNote(${i})" class="btn-press rounded-xl py-2.5 px-3 chip text-xs font-bold tracking-wide ${e.notes?'accent-text':'text-mute'}">NOTE</button>
+    </div>
+    ${ e.notes ? `<p class="text-xs text-mute mt-2 italic px-1">“${esc(e.notes)}”</p>`:'' }
+  </div>`;
+}
+function setRow(i,j,s){
+  return `<div class="grid grid-cols-[34px_1fr_1fr_50px] gap-2 items-center rounded-xl border border-line p-1.5 ${s.completed?'set-done':''}" data-row="${i}-${j}">
+    <div class="text-center font-display font-700 text-sm text-mute">${j+1}</div>
+    <input type="number" inputmode="decimal" value="${s.weight}" placeholder="0"
+      oninput="onSet(${i},${j},'weight',this.value)" class="bg-transparent text-center font-display font-600 text-lg w-full outline-none" />
+    <input type="number" inputmode="numeric" value="${s.reps}" placeholder="0"
+      oninput="onSet(${i},${j},'reps',this.value)" class="bg-transparent text-center font-display font-600 text-lg w-full outline-none" />
+    <button onclick="toggleSet(${i},${j})" class="mx-auto w-9 h-9 rounded-lg btn-press flex items-center justify-center ${s.completed?'':'chip'}" style="${s.completed?'background:var(--volt)':''}">
+      <svg class="w-5 h-5 ${s.completed?'text-ink':'text-mute'}" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7"/></svg>
+    </button>
+  </div>`;
+}
+
+/* logger wiring (focus-safe: structural changes only re-render parts) */
+function wireLogger(){
+  const w=state.active; if(!w) return;
+  const nm=$('#woName'); if(nm) nm.addEventListener('input',()=>{ w.name=nm.value; touch(); });
+  const nt=$('#woNotes'); if(nt) nt.addEventListener('input',()=>{ w.notes=nt.value; touch(); });
+}
+function touch(){ const w=state.active; if(!w) return; w.updatedAt=Date.now(); queueSaveWorkout(w); }
+function refreshStats(){
+  const w=state.active; if(!w) return;
+  const setsBox=$('#statSets')?.parentElement;   // the "<b>done</b>/total sets" span
+  if(setsBox) setsBox.innerHTML = `<b id="statSets" class="text-white font-display">${workoutSetsDone(w)}</b>/${workoutSetsTotal(w)} sets`;
+  const vol=$('#statVol'); if(vol) vol.textContent=fmtVol(workoutVolume(w));
+}
+function onSet(i,j,field,val){
+  const w=state.active; w.exercises[i].sets[j][field]=val; refreshStats(); touch();
+}
+function toggleSet(i,j){
+  const w=state.active; const s=w.exercises[i].sets[j];
+  s.completed=!s.completed;
+  if(s.completed){ if(s.weight==='') s.weight='0'; if(s.reps==='') s.reps='0'; if(navigator.vibrate) navigator.vibrate(8); }
+  refreshSets(i); refreshStats(); touch();
+}
+function addSet(i){
+  const w=state.active; const e=w.exercises[i];
+  const last=e.sets[e.sets.length-1]||{};
+  e.sets.push({setNumber:e.sets.length+1, weight:last.weight||'', reps:last.reps||'', unit:state.unit, completed:false});
+  refreshSets(i); refreshStats(); touch();
+}
+function removeSet(i,j){
+  const w=state.active; w.exercises[i].sets.splice(j,1);
+  w.exercises[i].sets.forEach((s,k)=>s.setNumber=k+1);
+  refreshSets(i); refreshStats(); touch();
+}
+function refreshSets(i){
+  const w=state.active; const cont=$(`[data-sets="${i}"]`); if(!cont) return;
+  cont.innerHTML = w.exercises[i].sets.map((s,j)=>setRow(i,j,s)).join('');
+}
+function refreshExList(){
+  const w=state.active; const list=$('#exList'); if(!list) return;
+  list.innerHTML = w.exercises.map((e,i)=>exerciseCard(e,i)).join('');
+  refreshStats();
+}
+
+function exMenu(i){
+  const w=state.active; const e=w.exercises[i];
+  modal(`
+    <div class="p-2">
+      <div class="px-3 py-3 font-display font-700 text-lg">${esc(e.name)}</div>
+      ${ i>0 ? menuItem('Move up','M5 15l7-7 7 7',`moveEx(${i},-1)`):'' }
+      ${ i<w.exercises.length-1 ? menuItem('Move down','M19 9l-7 7-7-7',`moveEx(${i},1)`):'' }
+      ${ menuItem('Add a set','M12 5v14M5 12h14',`closeModal();addSet(${i})`) }
+      ${ e.sets.length>1 ? menuItem('Remove last set','M5 12h14',`closeModal();removeSet(${i},${e.sets.length-1})`):'' }
+      ${ menuItem('Edit note','M11 5h6M5 19h14M4 15l9-9 4 4-9 9H4z',`closeModal();exNote(${i})`) }
+      ${ menuItemDanger('Remove exercise','M6 7h12M9 7V5h6v2M7 7l1 13h8l1-13',`closeModal();removeEx(${i})`) }
+    </div>`,'sheet');
+}
+function menuItem(label,d,act){
+  return `<button onclick="${act}" class="w-full flex items-center gap-3 px-3 py-3.5 rounded-xl btn-press hover:bg-panel2 text-left">
+    <svg class="w-5 h-5 text-mute" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="${d}"/></svg>
+    <span class="font-semibold">${label}</span></button>`;
+}
+function menuItemDanger(label,d,act){
+  return `<button onclick="${act}" class="w-full flex items-center gap-3 px-3 py-3.5 rounded-xl btn-press hover:bg-panel2 text-left text-red-400">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="${d}"/></svg>
+    <span class="font-semibold">${label}</span></button>`;
+}
+function moveEx(i,dir){ const w=state.active; const j=i+dir; if(j<0||j>=w.exercises.length) return;
+  [w.exercises[i],w.exercises[j]]=[w.exercises[j],w.exercises[i]];
+  w.exercises.forEach((e,k)=>e.order=k); closeModal(); refreshExList(); touch();
+}
+function removeEx(i){ const w=state.active; w.exercises.splice(i,1); refreshExList(); touch(); }
+function exNote(i){
+  const w=state.active; const e=w.exercises[i];
+  modal(`<div class="p-5">
+    <h3 class="font-display font-700 text-xl mb-3">${esc(e.name)} — note</h3>
+    <textarea id="exNoteTa" rows="3" class="field w-full p-3 text-sm" placeholder="e.g. felt strong, increase next time">${esc(e.notes||'')}</textarea>
+    <div class="grid grid-cols-2 gap-3 mt-4">
+      <button onclick="closeModal()" class="rounded-xl py-3 chip font-semibold btn-press">Cancel</button>
+      <button onclick="saveExNote(${i})" class="rounded-xl py-3 font-bold text-ink btn-press" style="background:var(--volt)">Save</button>
+    </div></div>`);
+  setTimeout(()=>$('#exNoteTa')?.focus(),50);
+}
+function saveExNote(i){ const w=state.active; w.exercises[i].notes=$('#exNoteTa').value.trim(); closeModal(); refreshExList(); touch(); }
+
+function openAddExercise(){
+  // suggestions from history + current days
+  const seen=new Set(); const sugg=[];
+  state.workouts.forEach(w=>w.exercises.forEach(e=>{ const k=e.name.toLowerCase(); if(!seen.has(k)){seen.add(k);sugg.push(e.name);} }));
+  Object.values(state.days).forEach(d=>d.exercises.forEach(e=>{ const k=e.name.toLowerCase(); if(!seen.has(k)){seen.add(k);sugg.push(e.name);} }));
+  modal(`<div class="p-5">
+    <h3 class="font-display font-700 text-xl mb-3">Add exercise</h3>
+    <input id="newExName" placeholder="Exercise name" class="field w-full p-3.5 text-base mb-2" autocomplete="off" oninput="filterSugg(this.value)"/>
+    <div class="flex items-center gap-2 mb-3">
+      <span class="text-xs text-mute">Sets</span>
+      <input id="newExSets" type="number" inputmode="numeric" value="3" class="field w-16 p-2 text-center font-display font-600"/>
+    </div>
+    <div id="suggBox" class="flex flex-wrap gap-2 max-h-40 overflow-y-auto mb-4">
+      ${sugg.slice(0,30).map(s=>suggChip(s)).join('')}
+    </div>
+    <div class="grid grid-cols-2 gap-3">
+      <button onclick="closeModal()" class="rounded-xl py-3 chip font-semibold btn-press">Cancel</button>
+      <button onclick="confirmAddExercise()" class="rounded-xl py-3 font-bold text-ink btn-press" style="background:var(--volt)">Add</button>
+    </div></div>`);
+  window.__sugg=sugg;
+  setTimeout(()=>$('#newExName')?.focus(),50);
+}
+function suggChip(s){ return `<button data-act="pickSugg" data-val="${esc(s)}" class="chip btn-press text-sm px-3 py-1.5 rounded-full">${esc(s)}</button>`; }
+function filterSugg(v){ const box=$('#suggBox'); if(!box) return; const q=v.toLowerCase();
+  box.innerHTML=(window.__sugg||[]).filter(s=>s.toLowerCase().includes(q)).slice(0,30).map(suggChip).join(''); }
+function pickSugg(s){ $('#newExName').value=s; }
+function confirmAddExercise(){
+  const name=$('#newExName').value.trim(); if(!name){ toast('Enter a name','err'); return; }
+  const sets=Math.max(1,parseInt($('#newExSets').value)||1);
+  const w=state.active;
+  w.exercises.push({ name, order:w.exercises.length, notes:'',
+    sets:Array.from({length:sets},(_,k)=>({setNumber:k+1,weight:'',reps:'',unit:state.unit,completed:false})) });
+  closeModal(); refreshExList(); touch();
+}
+
+function pickDate(){
+  const w=state.active;
+  modal(`<div class="p-5">
+    <h3 class="font-display font-700 text-xl mb-3">Workout date</h3>
+    <input id="dateInput" type="date" value="${w.date}" class="field w-full p-3.5 text-base"/>
+    <div class="grid grid-cols-2 gap-3 mt-4">
+      <button onclick="closeModal()" class="rounded-xl py-3 chip font-semibold btn-press">Cancel</button>
+      <button onclick="saveDate()" class="rounded-xl py-3 font-bold text-ink btn-press" style="background:var(--volt)">Save</button>
+    </div></div>`);
+}
+function saveDate(){ const w=state.active; w.date=$('#dateInput').value||w.date; $('#woDateLbl').textContent=fmtDate(w.date); closeModal(); touch(); }
+
+function leaveLogger(){ // auto-saved already; just go home
+  go('home');
+}
+function saveAndLater(){
+  const w=state.active; if(!w) return;
+  if(w.status!=='completed') w.status='in_progress';
+  flushSaves(); toast('Saved — resume anytime'); state.active=null; go('home');
+}
+function finishWorkout(){
+  const w=state.active; if(!w) return;
+  const any=workoutSetsDone(w);
+  if(!any){ confirm2('Nothing completed','Mark at least one set complete, or finish anyway?','Finish anyway',()=>doFinish()); return; }
+  doFinish();
+}
+function doFinish(){
+  const w=state.active; w.status='completed'; w.updatedAt=Date.now();
+  queueSaveWorkout(w); flushSaves();
+  state.workouts.sort(sortWorkouts);
+  state.active=null; closeModal();
+  toast('Workout complete 🔥'); go('home');
+}
+function discardWorkout(){
+  const w=state.active; if(!w) return;
+  const done=w.status==='completed';
+  confirm2(done?'Delete workout?':'Discard workout?','This permanently removes it.',done?'Delete':'Discard',async ()=>{
+    state.workouts=state.workouts.filter(x=>x.workoutId!==w.workoutId); cacheSave();
+    try{ await apiPost('deleteWorkout',{workoutId:w.workoutId}); }catch(e){}
+    state.active=null; closeModal(); go('home');
+  });
+}
+
+/* =================================================================
+   START SHEET (choose template vs free form)
+   ================================================================= */
+function openStartSheet(){
+  const days=Object.keys(state.days);
+  modal(`<div class="p-5">
+    <h3 class="font-display font-700 text-2xl mb-4">Start workout</h3>
+    <button onclick="closeModal();startFreeForm()" class="btn-press w-full rounded-2xl py-4 mb-4 font-display font-700 tracking-wide text-ink" style="background:var(--volt)">FREE FORM</button>
+    <p class="text-xs font-bold tracking-widest text-mute mb-2">OR PICK A DAY</p>
+    <div class="space-y-2 max-h-72 overflow-y-auto">
+      ${ days.length ? days.map(n=>`<button data-act="startDay" data-val="${esc(n)}" onclick="closeModal()" class="btn-press w-full card p-3.5 text-left flex items-center justify-between">
+          <span class="font-display font-600">${esc(n)}</span>
+          <span class="text-mute text-xs">${state.days[n].exercises.length} ex</span></button>`).join('')
+        : `<p class="text-mute text-sm text-center py-4">No days yet.</p>` }
+    </div>
+  </div>`,'sheet');
+}
+
+/* =================================================================
+   DAYS MANAGEMENT
+   ================================================================= */
+function viewDays(){
+  const names=Object.keys(state.days);
+  return `
+  <div class="glass sticky top-0 z-20 px-4 pt-5 pb-3 border-b border-line flex items-center gap-3">
+    <button onclick="go('home')" class="w-10 h-10 rounded-full chip btn-press flex items-center justify-center text-mute">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m15 6-6 6 6 6"/></svg>
+    </button>
+    <h1 class="font-display font-700 text-xl">Workout Days</h1>
+  </div>
+  <div class="px-5 pt-5 space-y-3">
+    ${ names.length ? names.map(n=>{ const d=state.days[n]; return `
+      <div class="card p-4">
+        <div class="flex items-center justify-between">
+          <div class="min-w-0">
+            <h3 class="font-display font-700 text-lg truncate">${esc(d.name)}</h3>
+            <p class="text-mute text-xs mt-0.5">${d.exercises.length} exercises · ${d.exercises.reduce((a,e)=>a+(e.sets||0),0)} sets</p>
+          </div>
+          <button data-act="editDay" data-val="${esc(n)}" class="chip btn-press text-xs font-bold px-3 py-2 rounded-lg">EDIT</button>
+        </div>
+        <div class="flex flex-wrap gap-1.5 mt-3">
+          ${ d.exercises.slice().sort((a,b)=>a.order-b.order).map(e=>`<span class="chip text-xs px-2.5 py-1 rounded-full text-mute">${esc(e.name)}</span>`).join('') }
+        </div>
+      </div>`; }).join('')
+      : `<div class="card p-6 text-center text-mute text-sm">No workout days yet.</div>` }
+  </div>
+  <div class="px-5 mt-5">
+    <button onclick="openDayEditor()" class="btn-press w-full rounded-2xl py-4 font-display font-700 tracking-wide text-ink" style="background:var(--volt)">+ NEW DAY</button>
+  </div>`;
+}
+
+let _dayDraft=null;
+function openDayEditor(name){
+  if(name && state.days[name]) _dayDraft = structuredClone(state.days[name]);
+  else _dayDraft = { name:'', exercises:[], _isNew:true };
+  renderDayEditor();
+}
+function renderDayEditor(){
+  const d=_dayDraft;
+  const exs=d.exercises.slice().sort((a,b)=>a.order-b.order);
+  modal(`<div class="flex flex-col max-h-[85vh]">
+    <div class="p-5 pb-3 border-b border-line">
+      <input id="dayName" value="${esc(d.name)}" placeholder="Day name (e.g. Leg Day)" class="bg-transparent font-display font-700 text-2xl w-full outline-none placeholder:text-mute"/>
+    </div>
+    <div id="dayExList" class="p-4 space-y-2 overflow-y-auto flex-1">
+      ${ exs.length ? exs.map((e,i)=>dayExRow(e,i)).join('') : `<p class="text-mute text-sm text-center py-6">Add exercises below.</p>` }
+    </div>
+    <div class="p-4 border-t border-line">
+      <div class="flex gap-2 mb-3">
+        <input id="dayNewEx" placeholder="Add exercise" class="field flex-1 p-3 text-base" autocomplete="off" onkeydown="if(event.key==='Enter')addDayEx()"/>
+        <input id="dayNewSets" type="number" inputmode="numeric" value="3" class="field w-14 p-2 text-center font-display font-600"/>
+        <button onclick="addDayEx()" class="rounded-xl px-4 font-bold text-ink btn-press" style="background:var(--volt)">+</button>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        ${ d._isNew ? '' : `<button onclick="deleteDay()" class="rounded-xl py-3 chip font-semibold btn-press text-red-400">Delete</button>` }
+        <button onclick="saveDay()" class="rounded-xl py-3 font-bold text-ink btn-press ${d._isNew?'col-span-2':''}" style="background:var(--volt)">Save day</button>
+      </div>
+    </div>
+  </div>`,'sheet-full');
+}
+function dayExRow(e,i){
+  return `<div class="flex items-center gap-2 card p-3" data-dayex="${i}">
+    <div class="flex flex-col gap-0.5 text-mute">
+      <button onclick="moveDayEx(${i},-1)" class="btn-press"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" d="M6 15l6-6 6 6"/></svg></button>
+      <button onclick="moveDayEx(${i},1)" class="btn-press"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" d="M6 9l6 6 6-6"/></svg></button>
+    </div>
+    <span class="font-display font-600 flex-1 min-w-0 truncate">${esc(e.name)}</span>
+    <div class="flex items-center gap-1 chip rounded-lg px-1">
+      <button onclick="dayExSets(${i},-1)" class="w-7 h-7 btn-press text-mute font-bold">−</button>
+      <span class="w-6 text-center font-display font-700">${e.sets}</span>
+      <button onclick="dayExSets(${i},1)" class="w-7 h-7 btn-press text-mute font-bold">+</button>
+    </div>
+    <button onclick="delDayEx(${i})" class="w-8 h-8 btn-press text-red-400/70 flex items-center justify-center">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M6 7h12M9 7V5h6v2M7 7l1 13h8l1-13"/></svg>
+    </button>
+  </div>`;
+}
+function syncDayName(){ const el=$('#dayName'); if(el) _dayDraft.name=el.value; }
+function refreshDayExList(){
+  const exs=_dayDraft.exercises.slice().sort((a,b)=>a.order-b.order);
+  const box=$('#dayExList'); if(box) box.innerHTML = exs.length? exs.map((e,i)=>dayExRow(e,i)).join('') : `<p class="text-mute text-sm text-center py-6">Add exercises below.</p>`;
+}
+function addDayEx(){ syncDayName(); const n=$('#dayNewEx').value.trim(); if(!n) return;
+  const s=Math.max(1,parseInt($('#dayNewSets').value)||1);
+  _dayDraft.exercises.push({name:n,sets:s,order:_dayDraft.exercises.length});
+  $('#dayNewEx').value=''; $('#dayNewEx').focus(); refreshDayExList();
+}
+function delDayEx(i){ syncDayName(); _dayDraft.exercises.splice(i,1); _dayDraft.exercises.forEach((e,k)=>e.order=k); refreshDayExList(); }
+function dayExSets(i,d){ syncDayName(); const exs=_dayDraft.exercises.slice().sort((a,b)=>a.order-b.order);
+  exs[i].sets=Math.max(1,exs[i].sets+d); refreshDayExList(); }
+function moveDayEx(i,dir){ syncDayName(); const exs=_dayDraft.exercises.slice().sort((a,b)=>a.order-b.order);
+  const j=i+dir; if(j<0||j>=exs.length) return; [exs[i].order,exs[j].order]=[exs[j].order,exs[i].order]; refreshDayExList(); }
+async function saveDay(){
+  syncDayName(); const d=_dayDraft;
+  if(!d.name.trim()){ toast('Name your day','err'); return; }
+  if(!d.exercises.length){ toast('Add an exercise','err'); return; }
+  const clean={ name:d.name.trim(), exercises:d.exercises.map((e,i)=>({name:e.name,sets:e.sets,order:i})) };
+  // if renamed, drop old key
+  if(d._origName && d._origName!==clean.name) delete state.days[d._origName];
+  state.days[clean.name]=clean; cacheSave();
+  closeModal(); render();
+  try{ await apiPost('saveDay',{ day:clean, oldName:(d._origName||'') }); toast('Day saved'); }
+  catch(e){ toast('Saved on device','err'); }
+}
+async function deleteDay(){
+  const name=_dayDraft.name;
+  confirm2('Delete day?',`“${name}” template will be removed (past workouts kept).`,'Delete',async ()=>{
+    delete state.days[name]; cacheSave(); closeModal(); render();
+    try{ await apiPost('deleteDay',{ name }); }catch(e){}
+  });
+}
+// track original name for rename
+const _origOpen=openDayEditor;
+openDayEditor=function(name){ _origOpen(name); if(name){ _dayDraft._origName=name; } };
+
+/* =================================================================
+   HISTORY
+   ================================================================= */
+let _histQ='';
+function viewHistory(){
+  const all=state.workouts.filter(w=>w.status==='completed' || w.status==='in_progress');
+  const q=_histQ.toLowerCase();
+  const list=all.filter(w=> !q || w.name.toLowerCase().includes(q) ||
+    w.exercises.some(e=>e.name.toLowerCase().includes(q)) || (w.date||'').includes(q));
+  return `
+  ${brandBar()}
+  <div class="px-5 mt-4">
+    <h1 class="font-display font-700 text-2xl">History</h1>
+    <div class="field flex items-center gap-2 mt-3 px-3">
+      <svg class="w-5 h-5 text-mute" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="m21 21-4.3-4.3M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14Z"/></svg>
+      <input value="${esc(_histQ)}" oninput="_histQ=this.value;updateHistoryList()" placeholder="Search workouts or exercises" class="bg-transparent py-3 w-full outline-none text-base placeholder:text-mute"/>
+    </div>
+  </div>
+  <div id="histList" class="px-5 mt-4 space-y-3">
+    ${ list.length ? list.map(historyCard).join('') : `<div class="card p-6 text-center text-mute text-sm">No workouts found.</div>` }
+  </div>`;
+}
+function updateHistoryList(){
+  const q=_histQ.toLowerCase();
+  const list=state.workouts.filter(w=> !q || w.name.toLowerCase().includes(q) ||
+    w.exercises.some(e=>e.name.toLowerCase().includes(q)) || (w.date||'').includes(q));
+  const box=$('#histList'); if(box) box.innerHTML = list.length? list.map(historyCard).join('') : `<div class="card p-6 text-center text-mute text-sm">No workouts found.</div>`;
+}
+function historyCard(w){
+  const ip=w.status==='in_progress';
+  return `<button onclick="editWorkout('${w.workoutId}')" class="btn-press w-full card p-4 text-left">
+    <div class="flex items-center justify-between gap-2">
+      <h3 class="font-display font-700 text-lg truncate">${esc(w.name)}</h3>
+      ${ ip ? `<span class="text-[10px] font-bold tracking-widest accent-text shrink-0">● LIVE</span>` : `<span class="text-mute text-xs shrink-0">${fmtDateShort(w.date)}</span>` }
+    </div>
+    <div class="flex gap-4 mt-2 text-sm">
+      <span class="text-mute"><b class="text-white font-display">${(w.exercises||[]).length}</b> ex</span>
+      <span class="text-mute"><b class="text-white font-display">${workoutSetsDone(w)}</b> sets</span>
+      <span class="text-mute"><b class="accent-text font-display">${fmtVol(workoutVolume(w))}</b> ${state.unit}</span>
+    </div>
+    <div class="flex flex-wrap gap-1.5 mt-2.5">
+      ${ (w.exercises||[]).slice(0,4).map(e=>`<span class="chip text-[11px] px-2 py-0.5 rounded-full text-mute">${esc(e.name)}</span>`).join('') }
+      ${ (w.exercises||[]).length>4 ? `<span class="text-[11px] text-mute px-1 py-0.5">+${w.exercises.length-4}</span>`:'' }
+    </div>
+  </button>`;
+}
+
+/* =================================================================
+   PROGRESS
+   ================================================================= */
+function allExerciseStats(){
+  const map={};
+  state.workouts.filter(w=>w.status==='completed').forEach(w=>{
+    (w.exercises||[]).forEach(e=>{
+      const k=e.name.toLowerCase();
+      if(!map[k]) map[k]={ name:e.name, sessions:0, maxWeight:0, maxOneRm:0, totalVolume:0, points:[] };
+      const m=map[k]; m.sessions++;
+      let sessVol=0, sessMax=0, sessRm=0;
+      e.sets.forEach(s=>{ if(!s.completed) return; const wt=num(s.weight), rp=num(s.reps);
+        sessVol+=wt*rp; if(wt>sessMax) sessMax=wt; const rm=wt*(1+rp/30); if(rm>sessRm) sessRm=rm; });
+      m.totalVolume+=sessVol;
+      if(sessMax>m.maxWeight) m.maxWeight=sessMax;
+      if(sessRm>m.maxOneRm) m.maxOneRm=sessRm;
+      m.points.push({date:w.date, volume:sessVol, maxWeight:sessMax, oneRm:sessRm});
+    });
+  });
+  Object.values(map).forEach(m=>m.points.sort((a,b)=>(a.date||'').localeCompare(b.date||'')));
+  return Object.values(map).sort((a,b)=>b.sessions-a.sessions);
+}
+function viewProgress(){
+  const done=state.workouts.filter(w=>w.status==='completed');
+  const totalVol=done.reduce((a,w)=>a+workoutVolume(w),0);
+  const totalSets=done.reduce((a,w)=>a+workoutSetsDone(w),0);
+  const stats=allExerciseStats();
+  // favorite day
+  const dayCount={}; done.forEach(w=>{ dayCount[w.name]=(dayCount[w.name]||0)+1; });
+  const fav=Object.entries(dayCount).sort((a,b)=>b[1]-a[1])[0];
+  // streak (weeks/days active) — simple: distinct dates
+  const days=new Set(done.map(w=>w.date)).size;
+
+  return `
+  ${brandBar()}
+  <div class="px-5 mt-4">
+    <h1 class="font-display font-700 text-2xl">Progress</h1>
+  </div>
+  <div class="px-5 mt-4 grid grid-cols-2 gap-3">
+    ${statTile('Workouts', done.length)}
+    ${statTile('Total volume', fmtVol(totalVol)+' '+state.unit)}
+    ${statTile('Sets logged', totalSets)}
+    ${statTile('Active days', days)}
+  </div>
+
+  <div class="px-5 mt-4">
+    <div class="card p-4">
+      <div class="flex items-center justify-between mb-1">
+        <h2 class="font-display font-600 text-sm tracking-[.15em] text-mute">VOLUME — LAST 12</h2>
+        ${ fav ? `<span class="text-xs text-mute">Top: <b class="text-white">${esc(fav[0])}</b></span>`:'' }
+      </div>
+      <div class="h-44"><canvas id="overviewChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="px-5 mt-6">
+    <h2 class="font-display font-600 text-sm tracking-[.15em] text-mute mb-3">EXERCISES</h2>
+    <div class="space-y-3">
+      ${ stats.length ? stats.map(exerciseRow).join('') : `<div class="card p-6 text-center text-mute text-sm">Complete a workout to see progress.</div>` }
+    </div>
+  </div>`;
+}
+function statTile(label,val){
+  return `<div class="card p-4">
+    <div class="font-display font-700 text-2xl accent-text">${val}</div>
+    <div class="text-mute text-xs mt-0.5 font-semibold tracking-wide">${label}</div>
+  </div>`;
+}
+function exerciseRow(m){
+  return `<button data-act="openEx" data-val="${esc(m.name)}" class="btn-press w-full card p-4 text-left flex items-center justify-between">
+    <div class="min-w-0">
+      <h3 class="font-display font-600 text-lg truncate">${esc(m.name)}</h3>
+      <p class="text-mute text-xs mt-0.5">${m.sessions} sessions · best ${Math.round(m.maxWeight)} ${state.unit}</p>
+    </div>
+    <div class="text-right shrink-0 ml-3">
+      <div class="font-display font-700 accent-text">${Math.round(m.maxOneRm)}</div>
+      <div class="text-[10px] text-mute tracking-widest">EST 1RM</div>
+    </div>
+  </button>`;
+}
+let _overviewChart=null;
+function drawOverviewChart(){
+  const cv=$('#overviewChart'); if(!cv||!window.Chart) return;
+  const done=state.workouts.filter(w=>w.status==='completed')
+    .slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')).slice(-12);
+  const labels=done.map(w=>fmtDateShort(w.date));
+  const data=done.map(w=>Math.round(workoutVolume(w)));
+  if(_overviewChart) _overviewChart.destroy();
+  _overviewChart=new Chart(cv,{ type:'bar',
+    data:{ labels, datasets:[{ data, backgroundColor:'rgba(214,255,63,.85)', borderRadius:6, maxBarThickness:24 }] },
+    options:chartOpts(false) });
+}
+
+/* =================================================================
+   EXERCISE DETAIL
+   ================================================================= */
+let _exName='';
+function openExercise(name){ _exName=name; go('exercise'); }
+function viewExerciseDetail(){
+  const m=allExerciseStats().find(x=>x.name.toLowerCase()===_exName.toLowerCase());
+  if(!m) return `<div class="px-5 pt-20 text-center text-mute">No data.<button onclick="go('progress')" class="block mx-auto mt-3 accent-text font-semibold">Back</button></div>`;
+  const first=m.points[0], last=m.points[m.points.length-1];
+  const change=first&&last? last.oneRm-first.oneRm : 0;
+  return `
+  <div class="glass sticky top-0 z-20 px-4 pt-5 pb-3 border-b border-line flex items-center gap-3">
+    <button onclick="go('progress')" class="w-10 h-10 rounded-full chip btn-press flex items-center justify-center text-mute">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m15 6-6 6 6 6"/></svg>
+    </button>
+    <h1 class="font-display font-700 text-xl truncate">${esc(m.name)}</h1>
+  </div>
+  <div class="px-5 mt-4 grid grid-cols-3 gap-3">
+    ${statTile('Best', Math.round(m.maxWeight)+' '+state.unit)}
+    ${statTile('Est 1RM', Math.round(m.maxOneRm))}
+    ${statTile('Sessions', m.sessions)}
+  </div>
+  <div class="px-5 mt-4">
+    <div class="card p-4">
+      <div class="flex items-center justify-between mb-1">
+        <h2 class="font-display font-600 text-sm tracking-[.15em] text-mute">WEIGHT / EST 1RM</h2>
+        ${ change? `<span class="text-xs font-bold ${change>=0?'accent-text':'text-red-400'}">${change>=0?'▲':'▼'} ${Math.abs(Math.round(change))}</span>`:'' }
+      </div>
+      <div class="h-52"><canvas id="exChart"></canvas></div>
+    </div>
+  </div>
+  <div class="px-5 mt-4">
+    <div class="card p-4">
+      <h2 class="font-display font-600 text-sm tracking-[.15em] text-mute mb-1">VOLUME PER SESSION</h2>
+      <div class="h-40"><canvas id="exVolChart"></canvas></div>
+    </div>
+  </div>
+  <div class="px-5 mt-4">
+    <h2 class="font-display font-600 text-sm tracking-[.15em] text-mute mb-2">SESSION LOG</h2>
+    <div class="space-y-2">
+      ${ m.points.slice().reverse().map(p=>`<div class="card p-3 flex items-center justify-between text-sm">
+        <span class="text-mute">${fmtDate(p.date)}</span>
+        <span class="font-display"><b>${Math.round(p.maxWeight)}</b> ${state.unit} · ${fmtVol(p.volume)} vol</span></div>`).join('') }
+    </div>
+  </div>`;
+}
+let _exChart=null,_exVolChart=null;
+function drawExerciseChart(){
+  const m=allExerciseStats().find(x=>x.name.toLowerCase()===_exName.toLowerCase()); if(!m) return;
+  const labels=m.points.map(p=>fmtDateShort(p.date));
+  const cv=$('#exChart');
+  if(cv&&window.Chart){ if(_exChart)_exChart.destroy();
+    _exChart=new Chart(cv,{ type:'line',
+      data:{ labels, datasets:[
+        { label:'Top set', data:m.points.map(p=>Math.round(p.maxWeight)), borderColor:'rgba(214,255,63,1)', backgroundColor:'rgba(214,255,63,.12)', fill:true, tension:.3, pointRadius:3, pointBackgroundColor:'#d6ff3f' },
+        { label:'Est 1RM', data:m.points.map(p=>Math.round(p.oneRm)), borderColor:'rgba(255,255,255,.5)', borderDash:[5,4], fill:false, tension:.3, pointRadius:0 }
+      ]}, options:chartOpts(true) });
+  }
+  const cv2=$('#exVolChart');
+  if(cv2&&window.Chart){ if(_exVolChart)_exVolChart.destroy();
+    _exVolChart=new Chart(cv2,{ type:'bar',
+      data:{ labels, datasets:[{ data:m.points.map(p=>Math.round(p.volume)), backgroundColor:'rgba(214,255,63,.7)', borderRadius:5, maxBarThickness:22 }]},
+      options:chartOpts(false) });
+  }
+}
+function chartOpts(legend){
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{ display:legend, labels:{ color:'#8b8b96', boxWidth:10, font:{size:11} } },
+      tooltip:{ backgroundColor:'#1c1c21', borderColor:'#2a2a31', borderWidth:1, titleColor:'#fff', bodyColor:'#d6ff3f' } },
+    scales:{
+      x:{ grid:{ display:false }, ticks:{ color:'#6b6b76', font:{size:10}, maxRotation:0, autoSkip:true, maxTicksLimit:6 } },
+      y:{ grid:{ color:'rgba(255,255,255,.05)' }, ticks:{ color:'#6b6b76', font:{size:10} }, beginAtZero:true }
+    }
+  };
+}
+
+/* =================================================================
+   MODALS
+   ================================================================= */
+function modal(inner, kind='center'){
+  const root=$('#modalRoot'); root.classList.remove('hidden-imp');
+  let wrap;
+  if(kind==='sheet' || kind==='sheet-full'){
+    wrap=`<div class="modal-back absolute inset-0 bg-black/60" onclick="closeModal()"></div>
+      <div class="sheet absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-panel border-t border-line rounded-t-3xl ${kind==='sheet-full'?'':'pb-6'}" style="max-height:90vh;overflow:hidden">
+        <div class="w-10 h-1 rounded-full bg-line mx-auto mt-3"></div>${inner}</div>`;
+  } else {
+    wrap=`<div class="modal-back absolute inset-0 bg-black/60 flex items-center justify-center p-5" onclick="if(event.target===this)closeModal()">
+        <div class="sheet w-full max-w-sm bg-panel border border-line rounded-3xl" style="animation:fade .2s ease both">${inner}</div></div>`;
+  }
+  root.innerHTML=wrap;
+}
+function closeModal(){ const root=$('#modalRoot'); root.classList.add('hidden-imp'); root.innerHTML=''; }
+function confirm2(title,msg,confirmLabel,onYes){
+  modal(`<div class="p-6">
+    <h3 class="font-display font-700 text-xl">${esc(title)}</h3>
+    <p class="text-mute text-sm mt-2">${esc(msg)}</p>
+    <div class="grid grid-cols-2 gap-3 mt-5">
+      <button onclick="closeModal()" class="rounded-xl py-3 chip font-semibold btn-press">Cancel</button>
+      <button id="confirmYes" class="rounded-xl py-3 font-bold btn-press bg-red-500 text-white">${esc(confirmLabel)}</button>
+    </div></div>`);
+  $('#confirmYes').onclick=()=>{ onYes&&onYes(); };
+}
+
+/* =================================================================
+   SETTINGS
+   ================================================================= */
+function openSettings(){
+  modal(`<div class="p-5">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="w-9">${MONOGRAM(34)}</div>
+      <h3 class="font-display font-700 text-xl">Settings</h3>
+    </div>
+
+    <label class="text-xs font-bold tracking-widest text-mute">GOOGLE APPS SCRIPT URL</label>
+    <input id="setUrl" value="${esc(state.apiUrl)}" placeholder="https://script.google.com/macros/s/.../exec" class="field w-full p-3 text-sm mt-1.5 mb-1"/>
+    <p class="text-[11px] text-mute mb-3">Paste your deployed Web App URL to sync with Google Sheets. Leave blank to use this device only.</p>
+
+    <label class="text-xs font-bold tracking-widest text-mute">UNITS</label>
+    <div class="grid grid-cols-2 gap-2 mt-1.5 mb-4">
+      <button onclick="setUnit('kg')" id="unitKg" class="rounded-xl py-3 font-display font-700 btn-press ${state.unit==='kg'?'text-ink':'chip text-mute'}" style="${state.unit==='kg'?'background:var(--volt)':''}">KG</button>
+      <button onclick="setUnit('lbs')" id="unitLbs" class="rounded-xl py-3 font-display font-700 btn-press ${state.unit==='lbs'?'text-ink':'chip text-mute'}" style="${state.unit==='lbs'?'background:var(--volt)':''}">LBS</button>
+    </div>
+
+    <div class="flex items-center justify-between text-xs text-mute mb-4">
+      <span>Status</span>
+      <span>${ state.apiUrl ? (state.online?'<b class="accent-text">Connected</b>':'<b class="text-yellow-400">Not reachable</b>') : '<b>Device-only</b>' }</span>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+      <button onclick="closeModal()" class="rounded-xl py-3 chip font-semibold btn-press">Close</button>
+      <button onclick="saveSettings()" class="rounded-xl py-3 font-bold text-ink btn-press" style="background:var(--volt)">Save & Sync</button>
+    </div>
+    <button onclick="reloadFromCloud()" class="w-full text-center text-xs text-mute mt-3 btn-press py-1">↻ Reload from cloud</button>
+  </div>`);
+}
+function setUnit(u){ state.unit=u; Store.set(KEY.unit,u);
+  $('#unitKg').className=`rounded-xl py-3 font-display font-700 btn-press ${u==='kg'?'text-ink':'chip text-mute'}`; $('#unitKg').style.background=u==='kg'?'var(--volt)':'';
+  $('#unitLbs').className=`rounded-xl py-3 font-display font-700 btn-press ${u==='lbs'?'text-ink':'chip text-mute'}`; $('#unitLbs').style.background=u==='lbs'?'var(--volt)':'';
+}
+async function saveSettings(){
+  const url=$('#setUrl').value.trim();
+  state.apiUrl=url; Store.set(KEY.url,url);
+  cacheSave();
+  closeModal(); toast('Settings saved'); render();
+  if(url){
+    try{ await apiPost('saveSettings',{ settings:{ unit:state.unit } }); }catch(e){}
+    reloadFromCloud(true);
+  }
+}
+async function reloadFromCloud(silent){
+  if(!state.apiUrl){ if(!silent) toast('No URL set','err'); return; }
+  try{
+    const data=await apiGet();
+    if(data&&data.ok){
+      state.online=true;
+      state.days=data.days||{};
+      state.workouts=(data.workouts||[]).sort(sortWorkouts);
+      if(data.settings&&data.settings.unit){ state.unit=data.settings.unit; Store.set(KEY.unit,state.unit); }
+      cacheSave(); render(); if(!silent) toast('Synced');
+    }
+  }catch(e){ state.online=false; if(!silent) toast('Could not reach cloud','err'); render(); }
+}
+
+/* ---------- go ---------- */
+boot();
+</script>
+</body>
+</html>
