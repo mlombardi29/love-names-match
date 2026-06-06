@@ -85,8 +85,10 @@
   .edge-ring{ box-shadow:0 0 0 1.5px var(--edge); border-color:var(--edge)!important; }
   .edge-text{ color:var(--edge); }
 
-  /* view transitions */
-  .view{ animation:fade .28s ease both; }
+  /* view transitions — opacity only (no transform) so fixed children stay
+     anchored to the viewport, not to the animated wrapper */
+  .view{ animation:viewfade .25s ease both; }
+  @keyframes viewfade{ from{opacity:0;} to{opacity:1;} }
   @keyframes fade{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
 
   .pulse-dot{ animation:pulse 1.6s infinite; }
@@ -303,7 +305,7 @@ const Store = (() => {
 const KEY = { url:'kh_api_url', cache:'kh_cache', unit:'kh_unit', custom:'kh_custom_ex', seeded:'kh_seeded' };
 const state = {
   apiUrl: Store.get(KEY.url) || '',
-  unit:   Store.get(KEY.unit) || 'kg',
+  unit:   Store.get(KEY.unit) || 'lbs',
   days:   {},        // name -> { name, exercises:[{name,sets,order}] }
   workouts: [],      // [{workoutId,date,name,status,notes,exercises:[{name,order,notes,sets:[{setNumber,weight,reps,unit,completed}]}], ...}]
   active: null,      // workout currently open in the logger/editor
@@ -441,15 +443,9 @@ async function boot(){
     state.loading=true;
     try{
       const data = await apiGet();
-      if(data && data.ok){
-        state.online=true;
-        state.days = data.days||{};
-        state.workouts = (data.workouts||[]).sort(sortWorkouts);
-        if(data.settings && data.settings.unit){ state.unit=data.settings.unit; Store.set(KEY.unit,state.unit); }
-        cacheSave();
-        // brand-new empty sheet → seed the 4 default days once (and push them)
-        if(!state.workouts.length && !Object.keys(state.days).length && !Store.get(KEY.seeded)) seedExampleDays(true);
-      }
+      applyCloud(data);
+      // brand-new empty sheet → seed the 4 default days once (and push them)
+      if(!state.workouts.length && !Object.keys(state.days).length && !Store.get(KEY.seeded)) seedExampleDays(true);
     }catch(e){ toast('Offline — using device data', 'err'); }
     state.loading=false;
     render();
@@ -457,6 +453,23 @@ async function boot(){
     // first run, device-only: seed the 4 default days once
     if(!state.workouts.length && !Object.keys(state.days).length && !Store.get(KEY.seeded)) seedExampleDays(false);
   }
+}
+function pushAllDays(){
+  if(!(state.apiUrl||state.gas)) return;
+  Object.values(state.days).forEach(d=>{ apiPost('saveDay',{ day:d, oldName:'' }).catch(()=>{}); });
+}
+/* Merge a cloud snapshot WITHOUT ever destroying local data:
+   if the cloud comes back empty (slow/failed write, fresh tab) we keep what we
+   have and re-push it, so toggling units / re-syncing can never wipe your days. */
+function applyCloud(data, pullUnit=true){
+  if(!data || !data.ok) return;
+  state.online=true;
+  const cDays=data.days||{}, cW=data.workouts||[];
+  if(Object.keys(cDays).length){ state.days=cDays; }
+  else if(Object.keys(state.days).length){ pushAllDays(); }   // cloud empty, we have local -> restore upward
+  if(cW.length){ state.workouts=cW.sort(sortWorkouts); }
+  if(pullUnit && data.settings && data.settings.unit){ state.unit=data.settings.unit; Store.set(KEY.unit,state.unit); }
+  cacheSave();
 }
 function sortWorkouts(a,b){
   const ip = (a.status==='in_progress')?1:0, ip2=(b.status==='in_progress')?1:0;
@@ -538,6 +551,7 @@ function render(){
     default:         html=viewHome();
   }
   app.innerHTML = `<div class="view safe-bottom">${html}</div>`;
+  $('#bottomNav').classList.toggle('hidden-imp', state.view==='logger'); // focused logging mode
   setActiveNav();
   afterRender();
 }
@@ -714,63 +728,68 @@ function viewLogger(){
     ${ done ? `<div class="mt-2 text-center text-[11px] font-bold tracking-widest text-mute">EDITING COMPLETED WORKOUT</div>`:'' }
   </div>
 
-  <div id="exList" class="px-4 pt-4 space-y-4">
+  <div id="exList" class="px-3 pt-3 space-y-2.5">
     ${ w.exercises.map((e,i)=>exerciseCard(e,i)).join('') }
   </div>
 
-  <div class="px-4 mt-4">
-    <button onclick="openAddExercise()" class="btn-press w-full rounded-2xl py-4 chip border-dashed font-display font-600 tracking-wide text-mute flex items-center justify-center gap-2">
+  <div class="px-3 mt-2.5">
+    <button onclick="openAddExercise()" class="btn-press w-full rounded-xl py-3 chip border-dashed font-display font-600 tracking-wide text-mute flex items-center justify-center gap-2 text-sm">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
       ADD EXERCISE
     </button>
   </div>
 
   <!-- workout notes -->
-  <div class="px-4 mt-4">
+  <div class="px-3 mt-2.5">
     <textarea id="woNotes" rows="2" placeholder="Workout notes…" class="field w-full p-3 text-sm placeholder:text-mute resize-none">${esc(w.notes||'')}</textarea>
   </div>
+  <div class="px-3 mt-2"><button onclick="discardWorkout()" class="w-full text-center text-xs font-semibold text-red-400/80 py-2 btn-press">${done?'Delete this workout':'Discard workout'}</button></div>
+  <div class="h-24"></div>
 
-  <div class="px-4 mt-5 grid grid-cols-2 gap-3">
-    <button onclick="saveAndLater()" class="btn-press rounded-2xl py-4 chip font-display font-600 tracking-wide">SAVE & LATER</button>
-    <button onclick="finishWorkout()" class="btn-press rounded-2xl py-4 font-display font-700 tracking-wide text-ink" style="background:var(--volt)">${done?'DONE':'FINISH'}</button>
+  <!-- ALWAYS-VISIBLE action bar (you can save the moment you put the phone down) -->
+  <div class="glass fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md border-t border-line z-30 px-3 pt-2.5 nav-safe">
+    <div class="grid grid-cols-2 gap-2.5 pb-1.5">
+      <button onclick="saveAndLater()" class="btn-press rounded-xl py-3.5 chip font-display font-700 tracking-wide text-sm flex items-center justify-center gap-1.5">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 4h11l3 3v13H5zM8 4v5h7M8 20v-6h8v6"/></svg>
+        SAVE PROGRESS
+      </button>
+      <button onclick="finishWorkout()" class="btn-press rounded-xl py-3.5 font-display font-700 tracking-wide text-ink text-sm" style="background:var(--volt)">${done?'DONE':'FINISH'}</button>
+    </div>
   </div>
-  <div class="px-4 mt-3"><button onclick="discardWorkout()" class="w-full text-center text-xs font-semibold text-red-400/80 py-2 btn-press">${done?'Delete this workout':'Discard workout'}</button></div>
   `;
 }
 
 function exerciseCard(e,i){
-  return `<div class="card p-4" data-ex="${i}">
+  return `<div class="card p-3" data-ex="${i}">
     <div class="flex items-center justify-between gap-2">
-      <div class="flex items-center gap-2 min-w-0">
-        <span class="font-display font-700 text-lg truncate">${esc(e.name)}</span>
-      </div>
-      <button onclick="exMenu(${i})" class="w-9 h-9 rounded-full chip btn-press flex items-center justify-center text-mute shrink-0">
+      <span class="font-display font-700 text-base truncate">${esc(e.name)}</span>
+      <button onclick="exMenu(${i})" class="w-8 h-8 -my-1 rounded-full chip btn-press flex items-center justify-center text-mute shrink-0">
         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
       </button>
     </div>
 
-    <div class="grid grid-cols-[34px_1fr_1fr_50px] gap-2 mt-3 px-1 text-[10px] font-bold tracking-widest text-mute">
+    <div class="grid grid-cols-[28px_1fr_1fr_44px] gap-2 mt-2 px-1 text-[9px] font-bold tracking-widest text-mute">
       <div class="text-center">SET</div><div class="text-center">${state.unit.toUpperCase()}</div><div class="text-center">REPS</div><div class="text-center">✓</div>
     </div>
-    <div class="space-y-2 mt-1" data-sets="${i}">
+    <div class="space-y-1.5 mt-1" data-sets="${i}">
       ${ e.sets.map((s,j)=>setRow(i,j,s)).join('') }
     </div>
 
-    <div class="flex gap-2 mt-3">
-      <button onclick="addSet(${i})" class="btn-press flex-1 rounded-xl py-2.5 chip text-xs font-bold tracking-wide text-mute">+ SET</button>
-      <button onclick="exNote(${i})" class="btn-press rounded-xl py-2.5 px-3 chip text-xs font-bold tracking-wide ${e.notes?'accent-text':'text-mute'}">NOTE</button>
+    <div class="flex gap-2 mt-2">
+      <button onclick="addSet(${i})" class="btn-press flex-1 rounded-lg py-2 chip text-xs font-bold tracking-wide text-mute">+ SET</button>
+      <button onclick="exNote(${i})" class="btn-press rounded-lg py-2 px-3 chip text-xs font-bold tracking-wide ${e.notes?'text-white':'text-mute'}">NOTE</button>
     </div>
-    ${ e.notes ? `<p class="text-xs text-mute mt-2 italic px-1">“${esc(e.notes)}”</p>`:'' }
+    ${ e.notes ? `<p class="text-xs text-mute mt-1.5 italic px-1">“${esc(e.notes)}”</p>`:'' }
   </div>`;
 }
 function setRow(i,j,s){
-  return `<div class="grid grid-cols-[34px_1fr_1fr_50px] gap-2 items-center rounded-xl border border-line p-1.5 ${s.completed?'set-done':''}" data-row="${i}-${j}">
+  return `<div class="grid grid-cols-[28px_1fr_1fr_44px] gap-2 items-center rounded-lg border border-line p-1 ${s.completed?'set-done':''}" data-row="${i}-${j}">
     <div class="text-center font-display font-700 text-sm text-mute">${j+1}</div>
     <input type="number" inputmode="decimal" value="${s.weight}" placeholder="0"
-      oninput="onSet(${i},${j},'weight',this.value)" class="bg-transparent text-center font-display font-600 text-lg w-full outline-none" />
+      oninput="onSet(${i},${j},'weight',this.value)" class="bg-transparent text-center font-display font-600 text-base py-1.5 w-full outline-none" />
     <input type="number" inputmode="numeric" value="${s.reps}" placeholder="0"
-      oninput="onSet(${i},${j},'reps',this.value)" class="bg-transparent text-center font-display font-600 text-lg w-full outline-none" />
-    <button onclick="toggleSet(${i},${j})" class="mx-auto w-9 h-9 rounded-lg btn-press flex items-center justify-center ${s.completed?'':'chip'}" style="${s.completed?'background:var(--volt)':''}">
+      oninput="onSet(${i},${j},'reps',this.value)" class="bg-transparent text-center font-display font-600 text-base py-1.5 w-full outline-none" />
+    <button onclick="toggleSet(${i},${j})" class="mx-auto w-8 h-8 rounded-lg btn-press flex items-center justify-center ${s.completed?'':'chip'}" style="${s.completed?'background:var(--volt)':''}">
       <svg class="w-5 h-5 ${s.completed?'text-ink':'text-mute'}" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7"/></svg>
     </button>
   </div>`;
@@ -862,8 +881,8 @@ function saveExNote(i){ const w=state.active; w.exercises[i].notes=$('#exNoteTa'
 
 function openAddExercise(){
   _newExSets=3;
-  modal(`<div class="flex flex-col max-h-[85vh]">
-    <div class="p-5 pb-3 border-b border-line">
+  modal(`<div class="flex flex-col flex-1 min-h-0">
+    <div class="p-5 pb-3 border-b border-line shrink-0">
       <h3 class="font-display font-700 text-xl mb-3">Add exercise</h3>
       <input id="newExName" placeholder="Search or type an exercise…" class="field w-full p-3.5 text-base" autocomplete="off" oninput="renderExSuggest(this.value)"/>
       <div class="flex items-center gap-2 mt-3">
@@ -876,7 +895,7 @@ function openAddExercise(){
         <span class="text-[11px] text-mute ml-1">Tap a result to add instantly</span>
       </div>
     </div>
-    <div id="exSuggest" class="p-3 overflow-y-auto flex-1"></div>
+    <div id="exSuggest" class="p-3 overflow-y-auto flex-1 min-h-0 nav-safe"></div>
   </div>`,'sheet-full');
   setTimeout(()=>{ renderExSuggest(''); $('#newExName')?.focus(); },50);
 }
@@ -1019,16 +1038,16 @@ function openDayEditor(name){
 function renderDayEditor(){
   const d=_dayDraft;
   const exs=d.exercises.slice().sort((a,b)=>a.order-b.order);
-  modal(`<div class="flex flex-col max-h-[85vh]">
-    <div class="p-5 pb-3 border-b border-line">
+  modal(`<div class="flex flex-col flex-1 min-h-0">
+    <div class="p-5 pb-3 border-b border-line shrink-0">
       <input id="dayName" value="${esc(d.name)}" placeholder="Day name (e.g. Leg Day)" class="bg-transparent font-display font-700 text-2xl w-full outline-none placeholder:text-mute"/>
     </div>
-    <div id="dayExList" class="p-4 space-y-2 overflow-y-auto flex-1">
+    <div id="dayExList" class="p-4 space-y-2 overflow-y-auto flex-1 min-h-0">
       ${ exs.length ? exs.map((e,i)=>dayExRow(e,i)).join('') : `<p class="text-mute text-sm text-center py-6">Add exercises below.</p>` }
     </div>
-    <div class="p-4 border-t border-line">
+    <div class="p-4 border-t border-line shrink-0 nav-safe">
       <div class="flex gap-2 mb-3">
-        <input id="dayNewEx" placeholder="Add exercise" class="field flex-1 p-3 text-base" autocomplete="off" list="exDatalist" onkeydown="if(event.key==='Enter')addDayEx()"/>
+        <input id="dayNewEx" placeholder="Add exercise" class="field flex-1 p-3 text-base min-w-0" autocomplete="off" list="exDatalist" onkeydown="if(event.key==='Enter')addDayEx()"/>
         <datalist id="exDatalist">${ suggestExercises('',300).map(n=>`<option value="${esc(n)}">`).join('') }</datalist>
         <input id="dayNewSets" type="number" inputmode="numeric" value="3" class="field w-14 p-2 text-center font-display font-600"/>
         <button onclick="addDayEx()" class="rounded-xl px-4 font-bold text-ink btn-press" style="background:var(--volt)">+</button>
@@ -1493,13 +1512,25 @@ function chartOpts(legend){
 function modal(inner, kind='center'){
   const root=$('#modalRoot'); root.classList.remove('hidden-imp');
   let wrap;
-  if(kind==='sheet' || kind==='sheet-full'){
-    wrap=`<div class="modal-back absolute inset-0 bg-black/60" onclick="closeModal()"></div>
-      <div class="sheet absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-panel border-t border-line rounded-t-3xl ${kind==='sheet-full'?'':'pb-6'}" style="max-height:90vh;overflow:hidden">
-        <div class="w-10 h-1 rounded-full bg-line mx-auto mt-3"></div>${inner}</div>`;
+  if(kind==='sheet-full'){
+    // near-full-screen bottom sheet; inner manages its own header/scroll/footer
+    wrap=`<div class="modal-back fixed inset-0 bg-black/70" onclick="closeModal()"></div>
+      <div class="sheet fixed left-0 right-0 bottom-0 mx-auto w-full max-w-md bg-panel border-t border-line rounded-t-3xl flex flex-col"
+           style="height:92vh;height:92dvh;max-height:92vh;max-height:92dvh;">
+        <div class="shrink-0 w-10 h-1 rounded-full bg-line mx-auto mt-2.5 mb-1"></div>
+        ${inner}
+      </div>`;
+  } else if(kind==='sheet'){
+    wrap=`<div class="modal-back fixed inset-0 bg-black/70" onclick="closeModal()"></div>
+      <div class="sheet fixed left-0 right-0 bottom-0 mx-auto w-full max-w-md bg-panel border-t border-line rounded-t-3xl flex flex-col"
+           style="max-height:90vh;max-height:90dvh;">
+        <div class="shrink-0 w-10 h-1 rounded-full bg-line mx-auto mt-2.5 mb-1"></div>
+        <div class="overflow-y-auto nav-safe">${inner}</div>
+      </div>`;
   } else {
-    wrap=`<div class="modal-back absolute inset-0 bg-black/60 flex items-center justify-center p-5" onclick="if(event.target===this)closeModal()">
-        <div class="sheet w-full max-w-sm bg-panel border border-line rounded-3xl" style="animation:fade .2s ease both">${inner}</div></div>`;
+    wrap=`<div class="modal-back fixed inset-0 bg-black/70 flex items-center justify-center p-4" onclick="if(event.target===this)closeModal()">
+        <div class="sheet w-full max-w-sm bg-panel border border-line rounded-3xl overflow-y-auto"
+             style="max-height:88vh;max-height:88dvh;animation:fade .2s ease both">${inner}</div></div>`;
   }
   root.innerHTML=wrap;
 }
@@ -1549,9 +1580,13 @@ function openSettings(){
     <button onclick="reloadFromCloud()" class="w-full text-center text-xs text-mute mt-3 btn-press py-1">↻ Reload from cloud</button>
   </div>`);
 }
-function setUnit(u){ state.unit=u; Store.set(KEY.unit,u);
-  $('#unitKg').className=`rounded-xl py-3 font-display font-700 btn-press ${u==='kg'?'text-ink':'chip text-mute'}`; $('#unitKg').style.background=u==='kg'?'var(--volt)':'';
-  $('#unitLbs').className=`rounded-xl py-3 font-display font-700 btn-press ${u==='lbs'?'text-ink':'chip text-mute'}`; $('#unitLbs').style.background=u==='lbs'?'var(--volt)':'';
+function setUnit(u){
+  state.unit=u; Store.set(KEY.unit,u); cacheSave();
+  const kg=$('#unitKg'), lbs=$('#unitLbs');
+  if(kg){ kg.className=`rounded-xl py-3 font-display font-700 btn-press ${u==='kg'?'text-ink':'chip text-mute'}`; kg.style.background=u==='kg'?'var(--volt)':''; }
+  if(lbs){ lbs.className=`rounded-xl py-3 font-display font-700 btn-press ${u==='lbs'?'text-ink':'chip text-mute'}`; lbs.style.background=u==='lbs'?'var(--volt)':''; }
+  // persist the preference only — never reloads, so it can't touch your days/workouts
+  if(state.apiUrl||state.gas) apiPost('saveSettings',{settings:{unit:u}}).catch(()=>{});
 }
 async function saveSettings(){
   const el=$('#setUrl');
@@ -1567,13 +1602,8 @@ async function reloadFromCloud(silent){
   if(!state.apiUrl && !state.gas){ if(!silent) toast('No URL set','err'); return; }
   try{
     const data=await apiGet();
-    if(data&&data.ok){
-      state.online=true;
-      state.days=data.days||{};
-      state.workouts=(data.workouts||[]).sort(sortWorkouts);
-      if(data.settings&&data.settings.unit){ state.unit=data.settings.unit; Store.set(KEY.unit,state.unit); }
-      cacheSave(); render(); if(!silent) toast('Synced');
-    }
+    applyCloud(data);
+    render(); if(!silent) toast('Synced');
   }catch(e){ state.online=false; if(!silent) toast('Could not reach cloud','err'); render(); }
 }
 

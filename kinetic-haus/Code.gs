@@ -126,7 +126,7 @@ function getData(){
   // ---- settings ----
   const settings = {};
   sett.forEach(r => { if (r.key) settings[r.key] = r.value; });
-  if (!settings.unit) settings.unit = 'kg';
+  if (!settings.unit) settings.unit = 'lbs';
 
   return { ok:true, workouts:workouts, days:dmap, settings:settings };
 }
@@ -257,5 +257,5 @@ function setup(){
   getSheet(ss, SHEET_LOGS, LOG_HEADERS);
   getSheet(ss, SHEET_DAYS, DAY_HEADERS);
   getSheet(ss, SHEET_SETTINGS, SET_HEADERS);
-  saveSettings({ unit:'kg' });
+  saveSettings({ unit:'lbs' });
 }
