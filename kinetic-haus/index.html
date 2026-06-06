@@ -311,6 +311,7 @@ const state = {
   view:   'home',
   loading:false,
   online: false,
+  gas:    false,     // true when the page is served from inside Apps Script
 };
 
 /* ---------- tiny utils ---------- */
@@ -330,14 +331,36 @@ function workoutSetsDone(w){ let c=0; (w.exercises||[]).forEach(e=>e.sets.forEac
 function workoutSetsTotal(w){ let c=0; (w.exercises||[]).forEach(e=>c+=e.sets.length); return c; }
 const fmtVol = v => v>=1000 ? (v/1000).toFixed(1).replace(/\.0$/,'')+'k' : Math.round(v).toString();
 
-/* ---------- API layer ---------- */
+/* ---------- API layer ----------------------------------------------------
+   Works in TWO modes automatically:
+   • Hosted INSIDE Apps Script (served by Code.gs)  -> uses google.script.run
+   • Standalone file / hosted elsewhere             -> uses fetch() to apiUrl  */
+function inGAS(){ return typeof google!=='undefined' && !!(google.script && google.script.run); }
+function gasRun(fn){
+  const args=[].slice.call(arguments,1);
+  return new Promise((resolve,reject)=>{
+    google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn].apply(null,args);
+  });
+}
 async function apiGet(){
+  if(state.gas) return await gasRun('getData');
   if(!state.apiUrl) return null;
   const r = await fetch(state.apiUrl + '?action=getData', { method:'GET' });
   if(!r.ok) throw new Error('GET '+r.status);
   return await r.json();
 }
 async function apiPost(action, payload){
+  payload = payload || {};
+  if(state.gas){
+    switch(action){
+      case 'saveWorkout':   return await gasRun('saveWorkout', payload.workout);
+      case 'deleteWorkout': return await gasRun('deleteWorkout', payload.workoutId);
+      case 'saveDay':       return await gasRun('saveDay', payload.day, payload.oldName||'');
+      case 'deleteDay':     return await gasRun('deleteDay', payload.name);
+      case 'saveSettings':  return await gasRun('saveSettings', payload.settings);
+      default:              return await gasRun('getData');
+    }
+  }
   if(!state.apiUrl) return { ok:false, offline:true };
   // text/plain avoids a CORS preflight that Apps Script can't answer
   const r = await fetch(state.apiUrl, {
@@ -409,11 +432,12 @@ function toast(msg, kind='ok'){
    BOOT
    ================================================================= */
 async function boot(){
+  state.gas = inGAS();   // detect Apps-Script-hosted mode
   cacheLoad();
   bindNav();
   bindDelegation();
   render();              // paint from cache instantly
-  if(state.apiUrl){
+  if(state.apiUrl || state.gas){
     state.loading=true;
     try{
       const data = await apiGet();
@@ -527,9 +551,9 @@ function afterRender(){
    HEADER (brand hero)
    ================================================================= */
 function brandBar(){
-  const dot = state.apiUrl
-    ? (state.online ? 'bg-white' : 'bg-transparent border border-edge')   // not-reachable = yellow ring (outline)
-    : 'bg-mute';
+  const dot = (state.gas || state.online)
+    ? 'bg-white'
+    : (state.apiUrl ? 'bg-transparent border border-edge' : 'bg-mute');   // not-reachable = yellow ring (outline)
   return `<div class="flex items-center justify-between pt-5 px-5">
     <a href="https://kinetichaus.com" target="_blank" rel="noopener" class="btn-press" aria-label="Open kinetichaus.com">
       ${LOGO_LOCKUP()}
@@ -1501,9 +1525,11 @@ function openSettings(){
       <h3 class="font-display font-700 text-xl">Settings</h3>
     </div>
 
-    <label class="text-xs font-bold tracking-widest text-mute">GOOGLE APPS SCRIPT URL</label>
-    <input id="setUrl" value="${esc(state.apiUrl)}" placeholder="https://script.google.com/macros/s/.../exec" class="field w-full p-3 text-sm mt-1.5 mb-1"/>
-    <p class="text-[11px] text-mute mb-3">Paste your deployed Web App URL to sync with Google Sheets. Leave blank to use this device only.</p>
+    ${ state.gas
+      ? `<div class="rounded-xl chip p-3 mb-3 text-sm"><b class="text-white">Hosted in Google.</b> <span class="text-mute">This app is served from your Apps Script and syncs to your Sheet automatically — no URL needed.</span></div>`
+      : `<label class="text-xs font-bold tracking-widest text-mute">GOOGLE APPS SCRIPT URL</label>
+         <input id="setUrl" value="${esc(state.apiUrl)}" placeholder="https://script.google.com/macros/s/.../exec" class="field w-full p-3 text-sm mt-1.5 mb-1"/>
+         <p class="text-[11px] text-mute mb-3">Paste your deployed Web App URL to sync with Google Sheets. Leave blank to use this device only.</p>` }
 
     <label class="text-xs font-bold tracking-widest text-mute">UNITS</label>
     <div class="grid grid-cols-2 gap-2 mt-1.5 mb-4">
@@ -1513,7 +1539,7 @@ function openSettings(){
 
     <div class="flex items-center justify-between text-xs text-mute mb-4">
       <span>Status</span>
-      <span>${ state.apiUrl ? (state.online?'<b class="text-white">Connected</b>':'<b class="edge-text">Not reachable</b>') : '<b>Device-only</b>' }</span>
+      <span>${ state.gas ? '<b class="text-white">Connected (hosted)</b>' : (state.apiUrl ? (state.online?'<b class="text-white">Connected</b>':'<b class="edge-text">Not reachable</b>') : '<b>Device-only</b>') }</span>
     </div>
 
     <div class="grid grid-cols-2 gap-3">
@@ -1528,17 +1554,17 @@ function setUnit(u){ state.unit=u; Store.set(KEY.unit,u);
   $('#unitLbs').className=`rounded-xl py-3 font-display font-700 btn-press ${u==='lbs'?'text-ink':'chip text-mute'}`; $('#unitLbs').style.background=u==='lbs'?'var(--volt)':'';
 }
 async function saveSettings(){
-  const url=$('#setUrl').value.trim();
-  state.apiUrl=url; Store.set(KEY.url,url);
+  const el=$('#setUrl');
+  if(el){ state.apiUrl=el.value.trim(); Store.set(KEY.url,state.apiUrl); }
   cacheSave();
   closeModal(); toast('Settings saved'); render();
-  if(url){
+  if(state.apiUrl || state.gas){
     try{ await apiPost('saveSettings',{ settings:{ unit:state.unit } }); }catch(e){}
     reloadFromCloud(true);
   }
 }
 async function reloadFromCloud(silent){
-  if(!state.apiUrl){ if(!silent) toast('No URL set','err'); return; }
+  if(!state.apiUrl && !state.gas){ if(!silent) toast('No URL set','err'); return; }
   try{
     const data=await apiGet();
     if(data&&data.ok){

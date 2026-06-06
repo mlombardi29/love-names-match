@@ -35,13 +35,22 @@ const SET_HEADERS = ['key','value'];
 /* ------------------------- HTTP entry points ------------------------- */
 
 function doGet(e){
-  const action = (e && e.parameter && e.parameter.action) || 'getData';
-  try {
-    if (action === 'getData') return json(getData());
-    return json({ ok:false, error:'Unknown action: ' + action });
-  } catch (err) {
-    return json({ ok:false, error:String(err) });
+  // If a data action is requested, return JSON (used by the standalone HTML).
+  const action = e && e.parameter && e.parameter.action;
+  if (action) {
+    try {
+      if (action === 'getData') return json(getData());
+      return json({ ok:false, error:'Unknown action: ' + action });
+    } catch (err) {
+      return json({ ok:false, error:String(err) });
+    }
   }
+  // Otherwise serve the app page itself (ALL-IN-ONE mode).
+  // Requires an HTML file named "Index" in this Apps Script project.
+  return HtmlService.createHtmlOutputFromFile('Index')
+    .setTitle('Kinetic Haus')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 function doPost(e){
