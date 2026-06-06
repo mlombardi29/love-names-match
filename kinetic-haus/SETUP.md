@@ -81,15 +81,34 @@ A green dot near the gear means you're connected. 🎉
 
 ## Using the app
 
+- **Four day templates** come pre-loaded the first time you open the app:
+  *Legs & Functional Core*, *Upper Body & Toning*, *Chest & Arms*, and
+  *Back, Shoulders & Core*. Edit or delete them any time under **Manage**.
 - **Free Form Workout** — start blank and add exercises as you go.
-- **Start a Day** — tap a saved template to pre-load its exercises and sets.
+- **Start a Day** — tap a template to pre-load its exercises and sets.
 - **Manage** (top of "Start a Day") — create / edit / reorder workout days.
 - **Logging** — type weight + reps, tap the **✓** to mark a set done. Tap
   **+ SET** to add sets on the fly. Everything **auto-saves**.
+- **Add exercise** — search a built-in library of 200+ common gym & at-home
+  movements (with variations like *Bench Press / Incline / Decline / Smith*).
+  Type anything custom and it's remembered for next time; your most-used
+  exercises rise to the top of the list.
 - **Save & Later** — pause a workout; it shows as a big **RESUME** card on Home.
 - **Finish** — completes the workout and files it in History.
 - **History** tab — search and re-open/edit any past workout.
-- **Progress** tab — overall stats + per-exercise weight/volume charts and PRs.
+- **Progress** tab — pick a timeframe (defaults to **6 weeks**) for the
+  *Consistency* and *Weight Moved* charts; tap any exercise for **weight** and
+  **reps** progression over time with **personal-best** markers. Earn
+  **Achievements** (Weekend Warrior, Perfect Week, PR Setter, Centurion, and
+  more) as you train.
+- **Logo / link** — the header logo (and the ↗ button next to it) open
+  **kinetichaus.com**.
+
+> **Using your exact logo file:** the app reproduces the Kinetic Haus mark as a
+> crisp white vector so it stays one self-contained file. To drop in the
+> official artwork instead, open `index.html`, find `KH_LOGO_OVERRIDE` near the
+> top of the script, and set it to a data-URI or path of your white/transparent
+> logo. Nothing else needs to change.
 
 ---
 
