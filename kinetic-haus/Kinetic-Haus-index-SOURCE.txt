@@ -1211,10 +1211,12 @@ function doFinish(){
 function discardWorkout(){
   const w=state.active; if(!w) return;
   const done=w.status==='completed';
-  confirm2(done?'Delete workout?':'Discard workout?','This permanently removes it.',done?'Delete':'Discard',async ()=>{
-    state.workouts=state.workouts.filter(x=>x.workoutId!==w.workoutId); cacheSave();
-    try{ await apiPost('deleteWorkout',{workoutId:w.workoutId}); }catch(e){}
-    state.active=null; closeModal(); go('home');
+  confirm2(done?'Delete workout?':'Discard workout?','This permanently removes it.',done?'Delete':'Discard',()=>{
+    // update UI immediately, delete on the server in the background (don't block the button)
+    state.workouts=state.workouts.filter(x=>x.workoutId!==w.workoutId);
+    state.active=null; cacheSave();
+    closeModal(); go('home');
+    apiPost('deleteWorkout',{ workoutId:w.workoutId }).catch(()=>{});
   });
 }
 
