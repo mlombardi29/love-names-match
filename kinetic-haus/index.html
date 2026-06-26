@@ -293,6 +293,14 @@ function suggestExercises(query, limit=40){
    Decides which inputs to show. Explicit equipment words force 'weighted'
    (e.g. "Weighted Pull-Ups", "Dumbbell Lunges"). Static holds & cardio are
    'timed' (seconds). Calisthenics are 'bodyweight' (reps only, no weight). */
+/* Effective type for an exercise instance: a per-exercise user override (set
+   via the ⋯ menu, remembered globally by name) wins over the auto-detection. */
+function effectiveType(e){
+  if(!e) return 'weighted';
+  if(e.type) return e.type;
+  const pref = state.typePrefs[(e.name||'').toLowerCase()];
+  return pref || exerciseType(e.name);
+}
 function exerciseType(name){
   const n=(name||'').toLowerCase();
   if(/\b(barbell|dumbbell|cable|machine|smith|ez-?bar|kettlebell|trap bar|goblet|plate|weighted|landmine)\b/.test(n)) return 'weighted';
@@ -425,7 +433,7 @@ const Store = (() => {
 })();
 
 /* ---------- global state ---------- */
-const KEY = { url:'kh_api_url', cache:'kh_cache', unit:'kh_unit', custom:'kh_custom_ex', seeded:'kh_seeded' };
+const KEY = { url:'kh_api_url', cache:'kh_cache', unit:'kh_unit', custom:'kh_custom_ex', seeded:'kh_seeded', tp:'kh_typeprefs' };
 const state = {
   apiUrl: Store.get(KEY.url) || '',
   unit:   Store.get(KEY.unit) || 'lbs',
@@ -433,6 +441,7 @@ const state = {
   workouts: [],      // [{workoutId,date,name,status,notes,exercises:[{name,order,notes,sets:[{setNumber,weight,reps,unit,completed}]}], ...}]
   active: null,      // workout currently open in the logger/editor
   customEx: [],      // user-typed exercises not in the built-in library
+  typePrefs: {},     // exerciseNameLower -> 'weighted'|'bodyweight'|'timed' (user override)
   view:   'home',
   loading:false,
   online: false,
@@ -509,8 +518,13 @@ function cacheLoad(){
     if(c.unit) state.unit = c.unit;
   }catch(e){}
   try{ state.customEx = JSON.parse(Store.get(KEY.custom)||'[]'); }catch(e){ state.customEx=[]; }
+  try{ state.typePrefs = JSON.parse(Store.get(KEY.tp)||'{}'); }catch(e){ state.typePrefs={}; }
 }
 function saveCustom(){ Store.set(KEY.custom, JSON.stringify(state.customEx)); }
+function saveTypePrefs(){
+  Store.set(KEY.tp, JSON.stringify(state.typePrefs));
+  if(state.apiUrl||state.gas) apiPost('saveSettings',{ settings:{ typePrefs:JSON.stringify(state.typePrefs) } }).catch(()=>{});
+}
 
 let saveTimer=null, saveQueue=new Set();
 function queueSaveWorkout(w){
@@ -600,6 +614,7 @@ function applyCloud(data, pullUnit=true){
   if(cW.length){ state.workouts=cW.sort(sortWorkouts); }
   else if(state.workouts.length){ pushAllWorkouts(); }        // cloud empty, we have local -> restore upward
   if(pullUnit && data.settings && data.settings.unit){ state.unit=data.settings.unit; Store.set(KEY.unit,state.unit); }
+  if(data.settings && data.settings.typePrefs){ try{ state.typePrefs=JSON.parse(data.settings.typePrefs)||{}; Store.set(KEY.tp,JSON.stringify(state.typePrefs)); }catch(e){} }
   cacheSave();
 }
 function sortWorkouts(a,b){
@@ -899,7 +914,7 @@ function viewLogger(){
 }
 
 function exerciseCard(e,i){
-  const type=exerciseType(e.name);
+  const type=effectiveType(e);
   const done=e.sets.filter(s=>s.completed).length, tot=e.sets.length;
   const allDone = tot>0 && done===tot;
 
@@ -949,7 +964,7 @@ function exerciseCard(e,i){
   </div>`;
 }
 function setRow(i,j,s,type){
-  type = type || exerciseType(state.active.exercises[i].name);
+  type = type || effectiveType(state.active.exercises[i]);
   const lu = lastUsed(state.active.exercises[i].name);
   const wph = lu && num(lu.weight)>0 ? String(num(lu.weight)) : '0';
   const rph = lu && num(lu.reps)>0 ? String(num(lu.reps)) : '0';
@@ -999,7 +1014,7 @@ function toggleSet(i,j){
   const w=state.active; const e=w.exercises[i]; const s=e.sets[j];
   s.completed=!s.completed;
   if(s.completed){
-    const type=exerciseType(e.name);
+    const type=effectiveType(e);
     if(type==='weighted' && s.weight==='') s.weight='0';
     if(s.reps==='') s.reps='0';
     if(navigator.vibrate) navigator.vibrate(8);
@@ -1046,6 +1061,8 @@ function exMenu(i){
   modal(`
     <div class="p-2">
       <div class="px-3 py-3 font-display font-700 text-lg">${esc(e.name)}</div>
+      ${ exTypeRow(i, effectiveType(e)) }
+      <div class="h-px bg-line mx-3 my-1"></div>
       ${ i>0 ? menuItem('Move up','M5 15l7-7 7 7',`moveEx(${i},-1)`):'' }
       ${ i<w.exercises.length-1 ? menuItem('Move down','M19 9l-7 7-7-7',`moveEx(${i},1)`):'' }
       ${ menuItem('Add a set','M12 5v14M5 12h14',`closeModal();addSet(${i})`) }
@@ -1053,6 +1070,21 @@ function exMenu(i){
       ${ menuItem('Edit note','M11 5h6M5 19h14M4 15l9-9 4 4-9 9H4z',`closeModal();exNote(${i})`) }
       ${ menuItemDanger('Remove exercise','M6 7h12M9 7V5h6v2M7 7l1 13h8l1-13',`closeModal();removeEx(${i})`) }
     </div>`,'sheet');
+}
+function exTypeRow(i, cur){
+  const opt=(t,label)=>`<button onclick="setExType(${i},'${t}')" class="flex-1 rounded-lg py-2.5 text-[11px] font-bold tracking-wide btn-press ${cur===t?'text-ink':'chip text-mute'}" style="${cur===t?'background:var(--volt)':''}">${label}</button>`;
+  return `<div class="px-3 pt-1 pb-1">
+    <div class="text-[10px] font-bold tracking-widest text-mute mb-1.5">INPUTS · how this exercise is logged</div>
+    <div class="flex gap-1.5">${opt('weighted',state.unit.toUpperCase()+' + REPS')}${opt('bodyweight','REPS ONLY')}${opt('timed','TIME (S)')}</div>
+  </div>`;
+}
+function setExType(i,t){
+  const w=state.active; const e=w.exercises[i];
+  e.type=t;
+  if(e.name) state.typePrefs[e.name.toLowerCase()]=t;   // remember for next time, everywhere
+  saveTypePrefs();
+  closeModal(); refreshExList(); touch();
+  toast(t==='weighted'?'Weight added':t==='timed'?'Now timed':'Bodyweight only');
 }
 function menuItem(label,d,act){
   return `<button onclick="${act}" class="w-full flex items-center gap-3 px-3 py-3.5 rounded-xl btn-press hover:bg-panel2 text-left">
