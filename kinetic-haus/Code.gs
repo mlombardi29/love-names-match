@@ -28,7 +28,7 @@ const SHEET_DAYS = 'Days';
 const SHEET_SETTINGS = 'Settings';
 
 const LOG_HEADERS = ['workoutId','date','workoutName','status','exercise','exerciseOrder',
-                     'setNumber','weight','reps','unit','completed','exerciseNotes','workoutNotes','updatedAt'];
+                     'setNumber','weight','reps','unit','completed','exerciseNotes','workoutNotes','updatedAt','collapsed'];
 const DAY_HEADERS = ['dayName','exercise','defaultSets','order'];
 const SET_HEADERS = ['key','value'];
 
@@ -95,7 +95,8 @@ function getData(){
     const exKey = r.exercise + '|' + r.exerciseOrder;
     if (w._exidx[exKey] === undefined){
       w._exidx[exKey] = w.exercises.length;
-      w.exercises.push({ name:r.exercise, order:Number(r.exerciseOrder)||0, notes:r.exerciseNotes||'', sets:[] });
+      w.exercises.push({ name:r.exercise, order:Number(r.exerciseOrder)||0, notes:r.exerciseNotes||'',
+        collapsed: (r.collapsed===true || String(r.collapsed).toUpperCase()==='TRUE'), sets:[] });
     }
     const ex = w.exercises[w._exidx[exKey]];
     if (r.exerciseNotes) ex.notes = r.exerciseNotes;
@@ -147,15 +148,15 @@ function saveWorkout(w){
         ex.name||'', (ex.order!=null?ex.order:ei),
         (s.setNumber!=null?s.setNumber:si+1),
         s.weight===''?'':Number(s.weight), s.reps===''?'':Number(s.reps),
-        s.unit||'kg', s.completed===true,
-        ex.notes||'', w.notes||'', w.updatedAt||now
+        s.unit||'lbs', s.completed===true,
+        ex.notes||'', w.notes||'', w.updatedAt||now, ex.collapsed===true
       ]);
     });
     // keep an exercise with zero sets so it isn't lost
     if (!(ex.sets||[]).length){
       rows.push([ w.workoutId, w.date||'', w.name||'', w.status||'in_progress',
-        ex.name||'', (ex.order!=null?ex.order:ei), 1, '', '', 'kg', false,
-        ex.notes||'', w.notes||'', w.updatedAt||now ]);
+        ex.name||'', (ex.order!=null?ex.order:ei), 1, '', '', 'lbs', false,
+        ex.notes||'', w.notes||'', w.updatedAt||now, ex.collapsed===true ]);
     }
   });
   if (rows.length){
@@ -213,6 +214,10 @@ function getSheet(ss, name, headers){
     sh.getRange(1,1,1,headers.length).setValues([headers]);
     sh.setFrozenRows(1);
   } else if (sh.getLastRow() === 0){
+    sh.getRange(1,1,1,headers.length).setValues([headers]);
+    sh.setFrozenRows(1);
+  } else if (sh.getLastColumn() < headers.length){
+    // migrate: widen header row when new columns are added (e.g. 'collapsed')
     sh.getRange(1,1,1,headers.length).setValues([headers]);
     sh.setFrozenRows(1);
   }

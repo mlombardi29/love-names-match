@@ -289,6 +289,129 @@ function suggestExercises(query, limit=40){
   return list.slice(0,limit);
 }
 
+/* ---------- exercise type: weighted | bodyweight | timed --------------------
+   Decides which inputs to show. Explicit equipment words force 'weighted'
+   (e.g. "Weighted Pull-Ups", "Dumbbell Lunges"). Static holds & cardio are
+   'timed' (seconds). Calisthenics are 'bodyweight' (reps only, no weight). */
+function exerciseType(name){
+  const n=(name||'').toLowerCase();
+  if(/\b(barbell|dumbbell|cable|machine|smith|ez-?bar|kettlebell|trap bar|goblet|plate|weighted|landmine)\b/.test(n)) return 'weighted';
+  if(/(plank|wall sit|hollow|dead hang|\bhang\b|mountain climb|high knee|battle rope|jump rope|bear crawl|farmer|superman|jumping jack|wall ball|sprint|running|\brun\b|jog|cycl|\bbike\b|erg|elliptical|stair|swim|incline walk|skater|flutter)/.test(n)) return 'timed';
+  if(/(push-?up|pull-?up|chin-?up|\bdips?\b|sit-?up|crunch|leg raise|russian twist|lunge|burpee|v-?up|toe touch|bird dog|dead bug|glute bridge|pistol|sissy|air squat|step-?up|knee raise)/.test(n)) return 'bodyweight';
+  return 'weighted';
+}
+/* Most recent historical values for an exercise (for the greyed placeholder hint). */
+function lastUsed(name){
+  const k=(name||'').toLowerCase();
+  const ws=state.workouts.filter(w=>w.status==='completed' && (!state.active||w.workoutId!==state.active.workoutId))
+    .slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.updatedAt||0)-(a.updatedAt||0));
+  for(const w of ws){
+    const e=(w.exercises||[]).find(x=>x.name.toLowerCase()===k);
+    if(e && e.sets.length){
+      let best=null;
+      e.sets.forEach(s=>{ if(s.completed){ if(!best || num(s.weight)>num(best.weight)) best=s; } });
+      if(!best) best=e.sets[e.sets.length-1];
+      if(best && (num(best.weight)>0||num(best.reps)>0)) return { weight:best.weight, reps:best.reps };
+    }
+  }
+  return null;
+}
+/* Best historical record for PR detection (excludes the in-progress workout). */
+function exerciseBest(name, excludeId){
+  const k=(name||'').toLowerCase(); let mw=0, mr=0;
+  state.workouts.filter(w=>w.status==='completed' && w.workoutId!==excludeId).forEach(w=>{
+    (w.exercises||[]).forEach(e=>{ if(e.name.toLowerCase()!==k) return;
+      e.sets.forEach(s=>{ if(!s.completed) return; mw=Math.max(mw,num(s.weight)); mr=Math.max(mr,num(s.reps)); }); });
+  });
+  return { weight:mw, reps:mr };
+}
+function fmtSetHint(type,w,r){
+  if(type==='timed') return (num(r)||0)+'s';
+  if(type==='bodyweight') return (num(r)||0)+' reps';
+  return (num(w)||0)+' '+state.unit+' × '+(num(r)||0);
+}
+function collapsedHint(e,type){
+  let s=null; e.sets.forEach(x=>{ if(num(x.weight)>0||num(x.reps)>0){ if(!s||num(x.weight)>num(s.weight)||(num(x.weight)===num(s.weight)&&num(x.reps)>num(s.reps))) s=x; } });
+  if(s) return fmtSetHint(type, s.weight, s.reps);
+  const lu=lastUsed(e.name); if(lu) return 'last '+fmtSetHint(type, lu.weight, lu.reps);
+  return '';
+}
+
+/* ---------- Coaching notes (shown when a workout starts) ---------- */
+const COACH_TACTICAL = [
+  'Brace your core before every rep — stability is strength.',
+  'Control the lowering phase; 2–3 seconds down builds more muscle.',
+  'Drive through your heels on squats and presses.',
+  'Full range of motion beats heavier sloppy reps.',
+  'Exhale on the effort, inhale on the way back.',
+  'Keep shoulders down and back on pulls and presses.',
+  'Leave 1–2 reps in the tank on early sets, push the last one.',
+  'Squeeze at the top of every contraction for a full second.',
+  'Keep the bar path straight and close to your body.',
+  'Set your feet and grip before you lift — tension first.',
+  'Slow is smooth, smooth is strong. No jerky reps.',
+  'Match or beat last session by one rep or a little weight.',
+  'Rest 60–90s for hypertrophy, 2–3 min for heavy strength.',
+  'Warm up the first movement with a lighter set.',
+  'Keep your neck neutral — eyes forward, not up.',
+  'Grip the floor with your toes for a stable base.',
+  'Don’t bounce — own the weight through the whole range.',
+  'Mind-muscle connection: feel the target muscle working.',
+  'Lock in your brace on the last two reps when form slips.',
+  'Quality reps now beat ego lifts you can’t recover from.',
+];
+const COACH_MOTIVATION = [
+  'Show up today and future-you wins.',
+  'You don’t have to be extreme, just consistent.',
+  'Every rep is a vote for the person you’re becoming.',
+  'The work you do today you’ll feel proud of tomorrow.',
+  'Discipline is choosing what you want most over what you want now.',
+  'One session won’t change everything — but it changes today.',
+  'Strong is earned, not given. Go earn it.',
+  'The hardest part is already done: you showed up.',
+  'Small steps, stacked daily, become unstoppable.',
+  'Beat yesterday. That’s the only competition.',
+  'Sweat now, shine later.',
+  'Your only limit is the one you accept.',
+  'Make your body the proof of your discipline.',
+  'Comfort is the enemy of progress.',
+  'Finish strong — the last rep counts the most.',
+  'Energy you spend here pays you back all day.',
+  'Be the kind of person who keeps promises to themselves.',
+  'Progress over perfection, every single time.',
+  'You’re building a body that carries you for life.',
+  'Let’s move. The Haus is open.',
+];
+function pick(arr){ return arr[Math.floor((Date.now()/1000+arr.length*Math.random()))%arr.length]; }
+function showCoachingNote(){
+  const t=pick(COACH_TACTICAL), m=pick(COACH_MOTIVATION);
+  modal(`<div class="p-6 text-center">
+    <div class="w-9 mx-auto mb-3">${MONOGRAM(34)}</div>
+    <div class="text-[11px] font-bold tracking-[.2em] text-mute">TODAY’S FOCUS</div>
+    <p class="font-display font-700 text-lg mt-2 leading-snug">${esc(t)}</p>
+    <div class="h-px bg-line my-4"></div>
+    <p class="text-mute text-sm italic leading-snug">“${esc(m)}”</p>
+    <button onclick="closeModal()" class="mt-5 w-full rounded-xl py-3.5 font-display font-700 text-ink btn-press" style="background:var(--volt)">LET’S GO</button>
+  </div>`);
+}
+
+/* ---------- Celebration popups (PRs + achievement unlocks) ---------- */
+let _celebQueue=[];
+function enqueueCeleb(c){ _celebQueue.push(c); if(_celebQueue.length===1) showNextCeleb(); }
+function showNextCeleb(){
+  const c=_celebQueue[0]; if(!c) return;
+  if(navigator.vibrate) navigator.vibrate([12,40,18]);
+  modal(`<div class="p-6 text-center">
+    <div class="mx-auto w-20 h-20 rounded-2xl edge-ring bg-panel2 flex items-center justify-center text-white mb-3"><div class="scale-150">${badgeIcon(c.icon)}</div></div>
+    <div class="text-[11px] font-bold tracking-[.2em] edge-text">${esc(c.kind)}</div>
+    <h3 class="font-display font-700 text-2xl mt-1 leading-tight">${esc(c.title)}</h3>
+    <p class="text-mute text-sm mt-1">${esc(c.desc)}</p>
+    <button onclick="dismissCeleb()" class="mt-5 w-full rounded-xl py-3.5 font-display font-700 text-ink btn-press" style="background:var(--volt)">OK</button>
+  </div>`);
+}
+function dismissCeleb(){ _celebQueue.shift(); closeModal(); if(_celebQueue.length) setTimeout(showNextCeleb,180); }
+function celebratePR(name, detail){ enqueueCeleb({ icon:'bolt', kind:'PERSONAL BEST', title:name, desc:detail+' — new best!' }); }
+
 /* ---------- safe storage (never throws in sandboxes) ---------- */
 const Store = (() => {
   let ok = true, mem = {};
@@ -687,16 +810,18 @@ function startFreeForm(){
   state.active = { workoutId:uid(), date:todayISO(), name:'Free Form', status:'in_progress', notes:'', exercises:[], updatedAt:Date.now() };
   queueSaveWorkout(state.active);
   go('logger');
+  showCoachingNote();
 }
 function startFromDay(name){
   const d=state.days[name]; if(!d) return;
   const exercises=(d.exercises||[]).slice().sort((a,b)=>a.order-b.order).map((e,i)=>({
-    name:e.name, order:i, notes:'',
+    name:e.name, order:i, notes:'', collapsed:true,   // start collapsed so all 7 names fit on one screen
     sets:Array.from({length:Math.max(1,e.sets||1)},(_,k)=>({setNumber:k+1,weight:'',reps:'',unit:state.unit,completed:false}))
   }));
   state.active={ workoutId:uid(), date:todayISO(), name:d.name, status:'in_progress', notes:'', exercises, updatedAt:Date.now() };
   queueSaveWorkout(state.active);
   go('logger');
+  showCoachingNote();
 }
 function resumeWorkout(id){
   const w=state.workouts.find(x=>x.workoutId===id); if(!w) return;
@@ -733,6 +858,12 @@ function viewLogger(){
       <span class="text-line">|</span>
       <span class="text-mute"><b id="statVol" class="accent-text font-display">${fmtVol(workoutVolume(w))}</b> ${state.unit}</span>
     </div>
+    <div class="mt-2 flex items-center gap-2">
+      <div class="flex-1 h-1.5 rounded-full bg-line overflow-hidden">
+        <div id="woProgress" class="h-full bg-white transition-all duration-300" style="width:${workoutSetsTotal(w)?Math.round(100*workoutSetsDone(w)/workoutSetsTotal(w)):0}%"></div>
+      </div>
+      <span id="woPct" class="text-[11px] font-bold text-mute tabular-nums w-9 text-right">${workoutSetsTotal(w)?Math.round(100*workoutSetsDone(w)/workoutSetsTotal(w)):0}%</span>
+    </div>
     ${ done ? `<div class="mt-2 text-center text-[11px] font-bold tracking-widest text-mute">EDITING COMPLETED WORKOUT</div>`:'' }
   </div>
 
@@ -768,19 +899,46 @@ function viewLogger(){
 }
 
 function exerciseCard(e,i){
+  const type=exerciseType(e.name);
+  const done=e.sets.filter(s=>s.completed).length, tot=e.sets.length;
+  const allDone = tot>0 && done===tot;
+
+  if(e.collapsed){
+    const hint=collapsedHint(e,type);
+    return `<div class="card p-3" data-ex="${i}">
+      <button onclick="toggleCollapse(${i})" class="w-full flex items-center justify-between gap-2 text-left">
+        <div class="min-w-0">
+          <div class="font-display font-700 text-base truncate">${esc(e.name)}</div>
+          <div class="text-[11px] text-mute mt-0.5">${done}/${tot} sets${hint?' · '+esc(hint):''}</div>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          ${allDone?`<span class="w-5 h-5 rounded-full bg-white flex items-center justify-center"><svg class="w-3.5 h-3.5 text-ink" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" d="m5 13 4 4L19 7"/></svg></span>`:''}
+          <svg class="w-5 h-5 text-mute" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
+        </div>
+      </button>
+    </div>`;
+  }
+
+  const cols = type==='weighted' ? 'grid-cols-[28px_1fr_1fr_44px]' : 'grid-cols-[28px_1fr_44px]';
+  const head = type==='weighted'
+    ? `<div class="text-center">SET</div><div class="text-center">${state.unit.toUpperCase()}</div><div class="text-center">REPS</div><div class="text-center">✓</div>`
+    : type==='timed'
+      ? `<div class="text-center">SET</div><div class="text-center">SEC</div><div class="text-center">✓</div>`
+      : `<div class="text-center">SET</div><div class="text-center">REPS</div><div class="text-center">✓</div>`;
   return `<div class="card p-3" data-ex="${i}">
     <div class="flex items-center justify-between gap-2">
-      <span class="font-display font-700 text-base truncate">${esc(e.name)}</span>
+      <button onclick="toggleCollapse(${i})" class="flex items-center gap-1.5 min-w-0 text-left">
+        <svg class="w-4 h-4 text-mute shrink-0" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m18 15-6-6-6 6"/></svg>
+        <span class="font-display font-700 text-base truncate">${esc(e.name)}</span>
+      </button>
       <button onclick="exMenu(${i})" class="w-8 h-8 -my-1 rounded-full chip btn-press flex items-center justify-center text-mute shrink-0">
         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
       </button>
     </div>
 
-    <div class="grid grid-cols-[28px_1fr_1fr_44px] gap-2 mt-2 px-1 text-[9px] font-bold tracking-widest text-mute">
-      <div class="text-center">SET</div><div class="text-center">${state.unit.toUpperCase()}</div><div class="text-center">REPS</div><div class="text-center">✓</div>
-    </div>
+    <div class="grid ${cols} gap-2 mt-2 px-1 text-[9px] font-bold tracking-widest text-mute">${head}</div>
     <div class="space-y-1.5 mt-1" data-sets="${i}">
-      ${ e.sets.map((s,j)=>setRow(i,j,s)).join('') }
+      ${ e.sets.map((s,j)=>setRow(i,j,s,type)).join('') }
     </div>
 
     <div class="flex gap-2 mt-2">
@@ -790,18 +948,33 @@ function exerciseCard(e,i){
     ${ e.notes ? `<p class="text-xs text-mute mt-1.5 italic px-1">“${esc(e.notes)}”</p>`:'' }
   </div>`;
 }
-function setRow(i,j,s){
-  return `<div class="grid grid-cols-[28px_1fr_1fr_44px] gap-2 items-center rounded-lg border border-line p-1 ${s.completed?'set-done':''}" data-row="${i}-${j}">
-    <div class="text-center font-display font-700 text-sm text-mute">${j+1}</div>
-    <input type="number" inputmode="decimal" value="${s.weight}" placeholder="0"
-      oninput="onSet(${i},${j},'weight',this.value)" class="bg-transparent text-center font-display font-600 text-base py-1.5 w-full outline-none" />
-    <input type="number" inputmode="numeric" value="${s.reps}" placeholder="0"
-      oninput="onSet(${i},${j},'reps',this.value)" class="bg-transparent text-center font-display font-600 text-base py-1.5 w-full outline-none" />
-    <button onclick="toggleSet(${i},${j})" class="mx-auto w-8 h-8 rounded-lg btn-press flex items-center justify-center ${s.completed?'':'chip'}" style="${s.completed?'background:var(--volt)':''}">
+function setRow(i,j,s,type){
+  type = type || exerciseType(state.active.exercises[i].name);
+  const lu = lastUsed(state.active.exercises[i].name);
+  const wph = lu && num(lu.weight)>0 ? String(num(lu.weight)) : '0';
+  const rph = lu && num(lu.reps)>0 ? String(num(lu.reps)) : '0';
+  const setno=`<div class="text-center font-display font-700 text-sm text-mute">${j+1}</div>`;
+  const check=`<button onclick="toggleSet(${i},${j})" class="mx-auto w-8 h-8 rounded-lg btn-press flex items-center justify-center ${s.completed?'':'chip'}" style="${s.completed?'background:var(--volt)':''}">
       <svg class="w-5 h-5 ${s.completed?'text-ink':'text-mute'}" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7"/></svg>
-    </button>
+    </button>`;
+  if(type==='weighted'){
+    return `<div class="grid grid-cols-[28px_1fr_1fr_44px] gap-2 items-center rounded-lg border border-line p-1 ${s.completed?'set-done':''}" data-row="${i}-${j}">
+      ${setno}
+      <input type="number" inputmode="decimal" value="${s.weight}" placeholder="${wph}"
+        oninput="onSet(${i},${j},'weight',this.value)" class="bg-transparent text-center font-display font-600 text-base py-1.5 w-full outline-none placeholder:text-mute placeholder:opacity-60" />
+      <input type="number" inputmode="numeric" value="${s.reps}" placeholder="${rph}"
+        oninput="onSet(${i},${j},'reps',this.value)" class="bg-transparent text-center font-display font-600 text-base py-1.5 w-full outline-none placeholder:text-mute placeholder:opacity-60" />
+      ${check}
+    </div>`;
+  }
+  return `<div class="grid grid-cols-[28px_1fr_44px] gap-2 items-center rounded-lg border border-line p-1 ${s.completed?'set-done':''}" data-row="${i}-${j}">
+    ${setno}
+    <input type="number" inputmode="numeric" value="${s.reps}" placeholder="${rph}"
+      oninput="onSet(${i},${j},'reps',this.value)" class="bg-transparent text-center font-display font-600 text-base py-1.5 w-full outline-none placeholder:text-mute placeholder:opacity-60" />
+    ${check}
   </div>`;
 }
+function toggleCollapse(i){ const w=state.active; w.exercises[i].collapsed=!w.exercises[i].collapsed; refreshExList(); touch(); }
 
 /* logger wiring (focus-safe: structural changes only re-render parts) */
 function wireLogger(){
@@ -815,15 +988,37 @@ function refreshStats(){
   const setsBox=$('#statSets')?.parentElement;   // the "<b>done</b>/total sets" span
   if(setsBox) setsBox.innerHTML = `<b id="statSets" class="text-white font-display">${workoutSetsDone(w)}</b>/${workoutSetsTotal(w)} sets`;
   const vol=$('#statVol'); if(vol) vol.textContent=fmtVol(workoutVolume(w));
+  const tot=workoutSetsTotal(w), pct=tot?Math.round(100*workoutSetsDone(w)/tot):0;
+  const bar=$('#woProgress'); if(bar) bar.style.width=pct+'%';
+  const pl=$('#woPct'); if(pl) pl.textContent=pct+'%';
 }
 function onSet(i,j,field,val){
   const w=state.active; w.exercises[i].sets[j][field]=val; refreshStats(); touch();
 }
 function toggleSet(i,j){
-  const w=state.active; const s=w.exercises[i].sets[j];
+  const w=state.active; const e=w.exercises[i]; const s=e.sets[j];
   s.completed=!s.completed;
-  if(s.completed){ if(s.weight==='') s.weight='0'; if(s.reps==='') s.reps='0'; if(navigator.vibrate) navigator.vibrate(8); }
+  if(s.completed){
+    const type=exerciseType(e.name);
+    if(type==='weighted' && s.weight==='') s.weight='0';
+    if(s.reps==='') s.reps='0';
+    if(navigator.vibrate) navigator.vibrate(8);
+    checkPR(i,j,type);
+  }
   refreshSets(i); refreshStats(); touch();
+}
+function checkPR(i,j,type){
+  const w=state.active; const e=w.exercises[i]; const s=e.sets[j];
+  const best=exerciseBest(e.name, w.workoutId);
+  w._prShown = w._prShown || {};
+  const wt=num(s.weight), rp=num(s.reps);
+  if(type==='weighted'){
+    if(wt>0 && best.weight>0 && wt>best.weight && !w._prShown[e.name+'|w']){ w._prShown[e.name+'|w']=1; celebratePR(e.name, wt+' '+state.unit+' × '+rp); }
+  } else if(type==='timed'){
+    if(rp>0 && best.reps>0 && rp>best.reps && !w._prShown[e.name+'|t']){ w._prShown[e.name+'|t']=1; celebratePR(e.name, rp+'s hold'); }
+  } else {
+    if(rp>0 && best.reps>0 && rp>best.reps && !w._prShown[e.name+'|r']){ w._prShown[e.name+'|r']=1; celebratePR(e.name, rp+' reps'); }
+  }
 }
 function addSet(i){
   const w=state.active; const e=w.exercises[i];
@@ -937,7 +1132,7 @@ function addExerciseByName(name, custom){
   }
   const sets=Math.max(1,_newExSets||3);
   const w=state.active;
-  w.exercises.push({ name, order:w.exercises.length, notes:'',
+  w.exercises.push({ name, order:w.exercises.length, notes:'', collapsed:false,
     sets:Array.from({length:sets},(_,k)=>({setNumber:k+1,weight:'',reps:'',unit:state.unit,completed:false})) });
   closeModal(); refreshExList(); touch();
   toast('Added '+name);
@@ -970,11 +1165,16 @@ function finishWorkout(){
   doFinish();
 }
 function doFinish(){
-  const w=state.active; w.status='completed'; w.updatedAt=Date.now();
+  const w=state.active;
+  const beforeIds=computeBadges().filter(b=>b.earned).map(b=>b.id);  // before this one counts
+  w.status='completed'; w.updatedAt=Date.now();
   queueSaveWorkout(w); flushSaves();
   state.workouts.sort(sortWorkouts);
+  const fresh=computeBadges().filter(b=>b.earned && !beforeIds.includes(b.id));
   state.active=null; closeModal();
-  toast('Workout complete 🔥'); go('home');
+  go('home');
+  if(fresh.length) fresh.forEach(b=>enqueueCeleb({ icon:b.icon, kind:'ACHIEVEMENT UNLOCKED', title:b.name, desc:b.desc }));
+  else toast('Workout complete 🔥');
 }
 function discardWorkout(){
   const w=state.active; if(!w) return;
@@ -1172,9 +1372,9 @@ function historyCard(w){
 /* =================================================================
    PROGRESS
    ================================================================= */
-function allExerciseStats(){
+function allExerciseStats(src){
   const map={};
-  state.workouts.filter(w=>w.status==='completed').forEach(w=>{
+  (src || state.workouts.filter(w=>w.status==='completed')).forEach(w=>{
     (w.exercises||[]).forEach(e=>{
       const k=e.name.toLowerCase();
       if(!map[k]) map[k]={ name:e.name, sessions:0, maxWeight:0, maxReps:0, maxOneRm:0, totalVolume:0, points:[], bestWeightDate:'', bestRepsDate:'' };
@@ -1242,47 +1442,80 @@ function badgeIcon(name){
   };
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><path d="${P[name]||P.star}"/></svg>`;
 }
-function computeBadges(){
-  const ws=state.workouts.filter(w=>w.status==='completed').slice().sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+function longestDayStreak(dateSet){
+  const days=[...dateSet].filter(Boolean).sort();
+  let best=0,cur=0,prev=null;
+  days.forEach(d=>{ const t=new Date(d+'T00:00:00').getTime();
+    if(prev!=null && Math.round((t-prev)/864e5)===1) cur++; else cur=1;
+    if(cur>best) best=cur; prev=t; });
+  return best;
+}
+function longestWeekRun(weekKeys){
+  const arr=[...new Set(weekKeys)].filter(Boolean).sort();
+  let best=0,cur=0,prev=null;
+  arr.forEach(k=>{ const t=new Date(k+'T00:00:00').getTime();
+    if(prev!=null && Math.round((t-prev)/(7*864e5))===1) cur++; else cur=1;
+    if(cur>best) best=cur; prev=t; });
+  return best;
+}
+function weekStreakMin(ws,min){ const wk={}; ws.forEach(w=>{ const k=weekKey(w.date); wk[k]=(wk[k]||0)+1; });
+  return longestWeekRun(Object.keys(wk).filter(k=>wk[k]>=min)); }
+
+function computeBadges(src){
+  const ws=(src || state.workouts.filter(w=>w.status==='completed')).slice().sort((a,b)=>(a.date||'').localeCompare(b.date||''));
   const count=ws.length;
   const totalVol=ws.reduce((a,w)=>a+workoutVolume(w),0);
   const dateSet=new Set(ws.map(w=>w.date));
-  const distinct=new Set(); ws.forEach(w=>w.exercises.forEach(e=>distinct.add(e.name.toLowerCase())));
-  let weekend=false;
-  ws.forEach(w=>{ const d=new Date(w.date+'T00:00:00'); if(d.getDay()===6){ const s=new Date(d); s.setDate(d.getDate()+1); if(dateSet.has(s.toISOString().slice(0,10))) weekend=true; } });
-  let early=false, night=false;
-  ws.forEach(w=>{ if(w.updatedAt){ const h=new Date(w.updatedAt).getHours(); if(h<7) early=true; if(h>=20) night=true; } });
+  let earlyAny=false, mornCount=0;
+  ws.forEach(w=>{ if(w.updatedAt){ const h=new Date(w.updatedAt).getHours(); if(h<7) earlyAny=true; if(h<9) mornCount++; } });
   const wkCount={}; ws.forEach(w=>{ const k=weekKey(w.date); wkCount[k]=(wkCount[k]||0)+1; });
-  const perfectWeek=Object.values(wkCount).some(c=>c>=4);
-  const streak=weekStreak();
-  const anyPR=allExerciseStats().some(m=>m.points.some((p,i)=>i>0 && p.weightPR));
-  const seedNames=['Legs & Functional Core','Upper Body & Toning','Chest & Arms','Back, Shoulders & Core'];
-  const usedSeed=seedNames.filter(n=>ws.some(w=>w.name===n)).length;
+  const perfectWeek=Object.values(wkCount).some(c=>c>=5);
+  const wkStreak3=weekStreakMin(ws,3);
+  const dayStreak=longestDayStreak(dateSet);
+  const monCount={}; ws.forEach(w=>{ const k=(w.date||'').slice(0,7); monCount[k]=(monCount[k]||0)+1; });
+  const ironMonth=Object.values(monCount).some(c=>c>=20);
   const bigDay=ws.reduce((m,w)=>Math.max(m,workoutVolume(w)),0);
+  const stats=allExerciseStats(ws);
+  const anyPR=stats.some(m=>m.points.some((p,i)=>i>0 && (p.weightPR||p.repsPR)));
+  const prWeeks=new Set(); stats.forEach(m=>m.points.forEach((p,i)=>{ if(i>0&&(p.weightPR||p.repsPR)) prWeeks.add(weekKey(p.date)); }));
+  const overload=stats.some(m=>{ const pts=m.points.filter(p=>p.maxWeight>0); return pts.length>=2 && pts[pts.length-1].maxWeight>=1.5*pts[0].maxWeight; });
+  const repGrowth=stats.some(m=>{ const pts=m.points.filter(p=>p.maxReps>0); return pts.length>=2 && pts[pts.length-1].maxReps>=Math.ceil(1.5*pts[0].maxReps); });
+  const maxSessions=stats.reduce((m,x)=>Math.max(m,x.sessions),0);
+  const seedNames=['Legs & Functional Core','Upper Body & Toning','Chest & Arms','Back, Shoulders & Core'];
+  const usedAllSeed=seedNames.every(n=>ws.some(w=>w.name===n));
   const u=state.unit;
-  const defs=[
-    {id:'first',  icon:'flag',    name:'First Rep',      desc:'Log your first workout',          earned:count>=1,   progress:count, goal:1},
-    {id:'w5',     icon:'medal',   name:'Getting Started',desc:'5 workouts logged',               earned:count>=5,   progress:count, goal:5},
-    {id:'w10',    icon:'medal',   name:'Committed',      desc:'10 workouts logged',              earned:count>=10,  progress:count, goal:10},
-    {id:'w25',    icon:'trophy',  name:'Regular',        desc:'25 workouts logged',              earned:count>=25,  progress:count, goal:25},
-    {id:'w50',    icon:'trophy',  name:'Dedicated',      desc:'50 workouts logged',              earned:count>=50,  progress:count, goal:50},
-    {id:'w100',   icon:'crown',   name:'Centurion',      desc:'100 workouts logged',             earned:count>=100, progress:count, goal:100},
-    {id:'weekend',icon:'flame',   name:'Weekend Warrior',desc:'Train Saturday & Sunday',         earned:weekend},
-    {id:'perfect',icon:'star',    name:'Perfect Week',   desc:'4+ workouts in one week',         earned:perfectWeek},
-    {id:'streak3',icon:'flame',   name:'On a Roll',      desc:'3-week training streak',          earned:streak>=3,  progress:streak, goal:3},
-    {id:'streak6',icon:'flame',   name:'Unstoppable',    desc:'6-week training streak',          earned:streak>=6,  progress:streak, goal:6},
-    {id:'early',  icon:'sun',     name:'Early Bird',     desc:'Finish a workout before 7am',     earned:early},
-    {id:'night',  icon:'moon',    name:'Night Owl',      desc:'Finish a workout after 8pm',      earned:night},
-    {id:'pr',     icon:'bolt',    name:'PR Setter',      desc:'Beat a previous best',            earned:anyPR},
-    {id:'var10',  icon:'dumbbell',name:'Explorer',       desc:'10 different exercises',          earned:distinct.size>=10, progress:distinct.size, goal:10},
-    {id:'var25',  icon:'dumbbell',name:'Versatile',      desc:'25 different exercises',          earned:distinct.size>=25, progress:distinct.size, goal:25},
-    {id:'full',   icon:'crown',   name:'Full Haus',      desc:'Use all 4 day templates',         earned:usedSeed>=4, progress:usedSeed, goal:4},
-    {id:'vol5k',  icon:'mountain',name:'5K Mover',       desc:`5,000 ${u} total volume`,         earned:totalVol>=5000,  progress:Math.round(totalVol), goal:5000},
-    {id:'vol50k', icon:'mountain',name:'50K Mover',      desc:`50,000 ${u} total volume`,        earned:totalVol>=50000, progress:Math.round(totalVol), goal:50000},
-    {id:'vol100k',icon:'mountain',name:'Six Figures',    desc:`100,000 ${u} total volume`,       earned:totalVol>=100000,progress:Math.round(totalVol), goal:100000},
-    {id:'heavy',  icon:'bolt',    name:'Heavy Day',      desc:`10,000 ${u} in one session`,      earned:bigDay>=10000},
+  return [
+    // — consistency / showing up —
+    {id:'first',    icon:'flag',    name:'First Rep',          desc:'Log your first workout',            earned:count>=1,   progress:count, goal:1},
+    {id:'w10',      icon:'medal',   name:'Committed',          desc:'10 workouts logged',                earned:count>=10,  progress:count, goal:10},
+    {id:'w25',      icon:'trophy',  name:'Dedicated',          desc:'25 workouts logged',                earned:count>=25,  progress:count, goal:25},
+    {id:'w50',      icon:'trophy',  name:'Seasoned',           desc:'50 workouts logged',                earned:count>=50,  progress:count, goal:50},
+    {id:'w100',     icon:'crown',   name:'Centurion',          desc:'100 workouts logged',               earned:count>=100, progress:count, goal:100},
+    // — streaks / few rest days (heavily incentivized) —
+    {id:'day7',     icon:'flame',   name:'7-Day Streak',       desc:'Train 7 days in a row',             earned:dayStreak>=7,  progress:dayStreak, goal:7},
+    {id:'day14',    icon:'flame',   name:'Two-Week Grind',     desc:'Train 14 days in a row',            earned:dayStreak>=14, progress:dayStreak, goal:14},
+    {id:'day30',    icon:'crown',   name:'30-Day Beast',       desc:'Train 30 days in a row',            earned:dayStreak>=30, progress:dayStreak, goal:30},
+    {id:'perfweek', icon:'star',    name:'Perfect Week',       desc:'5+ workouts in one week',           earned:perfectWeek},
+    {id:'wk4',      icon:'flame',   name:'On a Roll',          desc:'4 straight weeks of 3+ workouts',   earned:wkStreak3>=4, progress:wkStreak3, goal:4},
+    {id:'wk8',      icon:'flame',   name:'Unstoppable',        desc:'8 straight weeks of 3+ workouts',   earned:wkStreak3>=8, progress:wkStreak3, goal:8},
+    {id:'ironmonth',icon:'mountain',name:'Iron Month',         desc:'20 workouts in a calendar month',   earned:ironMonth},
+    // — mornings —
+    {id:'early',    icon:'sun',     name:'Early Bird',         desc:'Finish a workout before 7am',       earned:earlyAny},
+    {id:'morning',  icon:'sun',     name:'Morning Person',     desc:'10 workouts before 9am',            earned:mornCount>=10, progress:mornCount, goal:10},
+    // — big sessions (volume per workout) —
+    {id:'heavy',    icon:'bolt',    name:'Heavy Day',          desc:`15,000 ${u} in one session`,        earned:bigDay>=15000, progress:Math.round(bigDay), goal:15000},
+    {id:'beast',    icon:'bolt',    name:'Beast Mode',         desc:`25,000 ${u} in one session`,        earned:bigDay>=25000, progress:Math.round(bigDay), goal:25000},
+    {id:'workhorse',icon:'mountain',name:'Workhorse',          desc:`40,000 ${u} in one session`,        earned:bigDay>=40000, progress:Math.round(bigDay), goal:40000},
+    // — progressive overload / muscle growth (most rewarded) —
+    {id:'pr',       icon:'bolt',    name:'PR Setter',          desc:'Beat a previous best',              earned:anyPR},
+    {id:'stronger', icon:'star',    name:'Stronger Every Week',desc:'Set PRs in 3 different weeks',       earned:prWeeks.size>=3, progress:prWeeks.size, goal:3},
+    {id:'overload', icon:'dumbbell',name:'Progressive Overload',desc:'Add 50% to a lift over time',      earned:overload},
+    {id:'repgrow',  icon:'dumbbell',name:'Rep Machine',        desc:'Grow reps 50% on a movement',       earned:repGrowth},
+    {id:'specialist',icon:'medal',  name:'Specialist',         desc:'Train one exercise in 10 sessions', earned:maxSessions>=10, progress:maxSessions, goal:10},
+    // — exploration / long-term —
+    {id:'full',     icon:'crown',   name:'Full Haus',          desc:'Use all 4 day templates',           earned:usedAllSeed},
+    {id:'quarter',  icon:'mountain',name:'Quarter-Million Club',desc:`250,000 ${u} lifted all-time`,     earned:totalVol>=250000, progress:Math.round(totalVol), goal:250000},
   ];
-  return defs;
 }
 function badgeTile(b){
   const ring = b.earned ? 'edge-ring' : 'border border-line';
