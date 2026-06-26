@@ -401,7 +401,7 @@ function queueSaveWorkout(w){
   saveTimer = setTimeout(flushSaves, 700);
 }
 async function flushSaves(){
-  if(!state.apiUrl){ setSaveFlag('local'); return; }
+  if(!state.apiUrl && !state.gas){ setSaveFlag('local'); return; }   // device-only
   const ids=[...saveQueue]; saveQueue.clear();
   try{
     for(const id of ids){
@@ -438,6 +438,9 @@ async function boot(){
   cacheLoad();
   bindNav();
   bindDelegation();
+  // flush any pending save the moment the screen sleeps / app backgrounds
+  document.addEventListener('visibilitychange',()=>{ if(document.hidden) flushSaves(); });
+  window.addEventListener('pagehide',()=>{ flushSaves(); });
   render();              // paint from cache instantly
   if(state.apiUrl || state.gas){
     state.loading=true;
@@ -458,6 +461,10 @@ function pushAllDays(){
   if(!(state.apiUrl||state.gas)) return;
   Object.values(state.days).forEach(d=>{ apiPost('saveDay',{ day:d, oldName:'' }).catch(()=>{}); });
 }
+function pushAllWorkouts(){
+  if(!(state.apiUrl||state.gas)) return;
+  state.workouts.forEach(w=>{ apiPost('saveWorkout',{ workout:w }).catch(()=>{}); });
+}
 /* Merge a cloud snapshot WITHOUT ever destroying local data:
    if the cloud comes back empty (slow/failed write, fresh tab) we keep what we
    have and re-push it, so toggling units / re-syncing can never wipe your days. */
@@ -468,6 +475,7 @@ function applyCloud(data, pullUnit=true){
   if(Object.keys(cDays).length){ state.days=cDays; }
   else if(Object.keys(state.days).length){ pushAllDays(); }   // cloud empty, we have local -> restore upward
   if(cW.length){ state.workouts=cW.sort(sortWorkouts); }
+  else if(state.workouts.length){ pushAllWorkouts(); }        // cloud empty, we have local -> restore upward
   if(pullUnit && data.settings && data.settings.unit){ state.unit=data.settings.unit; Store.set(KEY.unit,state.unit); }
   cacheSave();
 }
