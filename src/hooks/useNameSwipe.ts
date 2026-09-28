@@ -138,7 +138,6 @@ export const useNameSwipe = (
   const unswiped = getUnswipedNames();
 
   return {
-    currentPartner: 'partner1' as Partner, // legacy compat
     getCurrentName,
     swipeOnName,
     getMatches,
