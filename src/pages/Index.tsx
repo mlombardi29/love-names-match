@@ -173,7 +173,7 @@ const Index = () => {
       />
 
       <main className="pb-12">
-        {currentView === 'swipe' && (
+        {currentView === 'swipe' && user && (
           <SwipeView
             names={allNames}
             nameSwipe={nameSwipe}
@@ -184,6 +184,7 @@ const Index = () => {
             onGenderChange={setSelectedGender}
             onAddNames={handleAddDiscoveredNames}
             matches={matches}
+            userId={user.id}
             partnerName={profile?.display_name}
             partnerPartnerName={partnerProfile?.display_name}
           />

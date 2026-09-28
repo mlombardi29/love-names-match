@@ -1,10 +1,12 @@
+import { useState } from 'react';
 import { BabyName, CulturalOrigin, Gender } from '@/data/names';
-import { useNameSwipe } from '@/hooks/useNameSwipe';
+import { MatchedName, useNameSwipe } from '@/hooks/useNameSwipe';
 import { NameCard } from './NameCard';
 import { CultureFilter } from './CultureFilter';
 import { GenderFilter } from './GenderFilter';
 import { GetMoreNames } from './GetMoreNames';
 import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
 import { Heart, Sparkles } from 'lucide-react';
 
 
@@ -17,7 +19,8 @@ interface SwipeViewProps {
   selectedGender: Gender | 'all';
   onGenderChange: (gender: Gender | 'all') => void;
   onAddNames: (names: BabyName[]) => void;
-  matches: any[];
+  matches: MatchedName[];
+  userId: string;
   partnerName?: string;
   partnerPartnerName?: string;
 }
@@ -32,16 +35,42 @@ export const SwipeView = ({
   onGenderChange,
   onAddNames,
   matches,
+  userId,
   partnerName,
 }: SwipeViewProps) => {
+  const [showMoreNames, setShowMoreNames] = useState(false);
   const {
-    currentPartner,
     getCurrentName,
     getPartnerProgress,
     isComplete
   } = nameSwipe;
 
   const currentName = getCurrentName();
+  const currentProgress = getPartnerProgress(userId);
+
+  const moreNamesControl = (
+    <div className="mb-6">
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full"
+        aria-expanded={showMoreNames}
+        onClick={() => setShowMoreNames((open) => !open)}
+      >
+        <Sparkles className="w-4 h-4" />
+        {showMoreNames ? 'Hide more names' : 'Get more names'}
+      </Button>
+      {showMoreNames && (
+        <div className="mt-4">
+          <GetMoreNames
+            matches={matches}
+            onAddNames={onAddNames}
+            existingNames={names}
+          />
+        </div>
+      )}
+    </div>
+  );
 
   if (isComplete) {
     return (
@@ -74,14 +103,17 @@ export const SwipeView = ({
           <Heart className="w-10 h-10 text-muted-foreground" />
         </div>
         <h2 className="text-2xl font-bold mb-2 text-foreground">No names to show</h2>
-        <p className="text-muted-foreground">
-          Try adjusting your filters or add custom names.
+        <p className="text-muted-foreground mb-8">
+          Try adjusting your filters, or add more names to the deck.
         </p>
+        <GetMoreNames
+          matches={matches}
+          onAddNames={onAddNames}
+          existingNames={names}
+        />
       </div>
     );
   }
-
-  const currentProgress = getPartnerProgress(currentPartner);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6">
@@ -110,6 +142,8 @@ export const SwipeView = ({
           </span>
         </div>
       </div>
+
+      {moreNamesControl}
 
       {/* Progress */}
       <div className="mb-8">
