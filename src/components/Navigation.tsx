@@ -36,9 +36,9 @@ export const Navigation = ({
             <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-primary-foreground" />
             </div>
-            <div>
+            <div className="hidden md:block">
               <h1 className="text-lg font-bold text-foreground">Baby Tinder</h1>
-              <p className="text-xs text-muted-foreground -mt-0.5 hidden sm:block">Find names together</p>
+              <p className="text-xs text-muted-foreground -mt-0.5">Find names together</p>
             </div>
           </div>
 
