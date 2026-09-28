@@ -81,7 +81,8 @@ const Onboarding = () => {
           <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary flex items-center justify-center">
             <Sparkles className="w-8 h-8 text-primary-foreground" />
           </div>
-          <h1 className="text-3xl font-bold text-foreground">Welcome{profile?.display_name ? `, ${profile.display_name}` : ''}!</h1>
+          <p className="text-sm font-semibold text-primary">Baby Tinder</p>
+          <h1 className="text-3xl font-bold text-foreground mt-1">Welcome{profile?.display_name ? `, ${profile.display_name}` : ''}!</h1>
           <p className="text-muted-foreground mt-1">Set up your partner space</p>
         </div>
 

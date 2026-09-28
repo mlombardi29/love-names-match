@@ -64,6 +64,7 @@ const Join = () => {
         <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary flex items-center justify-center">
           {status === 'done' ? <Heart className="w-8 h-8 text-primary-foreground fill-current" /> : <Sparkles className="w-8 h-8 text-primary-foreground" />}
         </div>
+        <p className="text-sm font-semibold text-primary mb-2">Baby Tinder</p>
         {status === 'joining' && (
           <>
             <h1 className="text-2xl font-bold text-foreground">Joining...</h1>
