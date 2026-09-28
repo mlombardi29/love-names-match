@@ -1,4 +1,4 @@
-# Welcome to your Lovable project
+# Baby Tinder
 
 ## Project info
 

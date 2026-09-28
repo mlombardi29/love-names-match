@@ -88,7 +88,7 @@ const Auth = () => {
           <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary flex items-center justify-center">
             <Sparkles className="w-8 h-8 text-primary-foreground" />
           </div>
-          <h1 className="text-3xl font-bold text-foreground">BabyNames</h1>
+          <h1 className="text-3xl font-bold text-foreground">Baby Tinder</h1>
           <p className="text-muted-foreground mt-1">Find the perfect name</p>
           {inviteCode && (
             <p className="text-sm text-primary mt-2 font-medium">
@@ -144,7 +144,7 @@ const Auth = () => {
 
                 {!inviteCode && (
                   <div className="space-y-2">
-                    <Label>How will you use BabyNames?</Label>
+                    <Label>How will you use Baby Tinder?</Label>
                     <div className="grid grid-cols-2 gap-3">
                       <button
                         type="button"
