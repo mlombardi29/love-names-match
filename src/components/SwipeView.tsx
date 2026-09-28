@@ -47,6 +47,10 @@ export const SwipeView = ({
 
   const currentName = getCurrentName();
   const currentProgress = getPartnerProgress(userId);
+  const shownPercent =
+    currentProgress.current <= 0
+      ? 0
+      : Math.min(100, Math.max(1, Math.round(currentProgress.percentage)));
 
   const moreNamesControl = (
     <div className="mb-6">
@@ -152,10 +156,10 @@ export const SwipeView = ({
             {currentProgress.current} of {currentProgress.total}
           </span>
           <span className="text-sm text-muted-foreground">
-            {Math.round(currentProgress.percentage)}% complete
+            {shownPercent}% complete
           </span>
         </div>
-        <Progress value={currentProgress.percentage} className="h-1.5" />
+        <Progress value={shownPercent} className="h-1.5" />
       </div>
 
       {/* Card */}
