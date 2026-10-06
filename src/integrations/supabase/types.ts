@@ -191,6 +191,13 @@ export type Database = {
       generate_invite_code: { Args: never; Returns: string }
       get_my_couple_id: { Args: never; Returns: string }
       is_member_of_couple: { Args: { _couple_id: string }; Returns: boolean }
+      lookup_couple_by_invite_code: {
+        Args: { _invite_code: string }
+        Returns: {
+          id: string
+          invite_code: string
+        }[]
+      }
       upgrade_solo_data_to_couple: {
         Args: { _couple_id: string }
         Returns: undefined

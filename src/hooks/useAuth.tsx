@@ -192,25 +192,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return { error: new Error('Not authenticated') };
 
     const normalized = code.trim().toUpperCase();
-    const { data: targetCouple, error: lookupError } = await supabase
-      .from('couples')
-      .select('*')
-      .eq('invite_code', normalized)
-      .maybeSingle();
+    // Non-members cannot SELECT couples under RLS, so a table lookup always
+    // looks like a bad code. Resolve only this invite through the definer RPC.
+    const { data: matches, error: lookupError } = await supabase
+      .rpc('lookup_couple_by_invite_code', { _invite_code: normalized });
 
     if (lookupError) return { error: lookupError as unknown as Error };
+    const targetCouple = matches?.[0];
     if (!targetCouple) return { error: new Error('Invalid invite code') };
 
-    // Check current membership count
-    const { data: members } = await supabase
-      .from('couple_members')
-      .select('user_id')
-      .eq('couple_id', targetCouple.id);
+    // couple_members SELECT is also members-only, so count via the existing
+    // security-definer helper. The insert policy still enforces the max of 2.
+    const { data: memberCount, error: countError } = await supabase
+      .rpc('couple_member_count', { _couple_id: targetCouple.id });
 
-    if (members && members.length >= 2) {
+    if (countError) return { error: countError as unknown as Error };
+    if ((memberCount ?? 0) >= 2) {
       return { error: new Error('This couple space is already full') };
     }
-    if (members?.some(m => m.user_id === user.id)) {
+
+    const { data: alreadyMember, error: memberError } = await supabase
+      .rpc('is_member_of_couple', { _couple_id: targetCouple.id });
+
+    if (memberError) return { error: memberError as unknown as Error };
+    if (alreadyMember) {
       return { error: new Error("You're already a member of this couple") };
     }
 
@@ -218,7 +223,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .from('couple_members')
       .insert({ couple_id: targetCouple.id, user_id: user.id });
 
-    if (joinError) return { error: joinError as unknown as Error };
+    if (joinError) {
+      const msg = (joinError.message ?? '').toLowerCase();
+      if (msg.includes('row-level security') || msg.includes('row level security') || msg.includes('permission denied')) {
+        return { error: new Error('This couple space is already full') };
+      }
+      if (msg.includes('duplicate') || msg.includes('unique')) {
+        return { error: new Error("You're already a member of this couple") };
+      }
+      return { error: joinError as unknown as Error };
+    }
 
     // Upgrade any solo data
     await supabase.rpc('upgrade_solo_data_to_couple', { _couple_id: targetCouple.id });
