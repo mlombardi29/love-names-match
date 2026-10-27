@@ -3,7 +3,11 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
 const ProtectedRoute = ({ children }: { children: ReactNode }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, passwordRecovery, recoveryPending, recoveryError } = useAuth();
+
+  if (passwordRecovery || recoveryPending || recoveryError) {
+    return <Navigate to="/reset-password" replace />;
+  }
 
   if (loading) {
     return (
