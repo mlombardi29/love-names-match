@@ -1,28 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth, AppMode } from '@/hooks/useAuth';
+import { friendlyError } from '@/lib/authErrors';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Sparkles, User, Users, LogIn, UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
-const friendlyError = (message: string): string => {
-  const m = message.toLowerCase();
-  if (m.includes('rate limit') || m.includes('too many')) return "Our email sender hit its hourly limit — totally a us problem, not you! Wait ~1 hour and try again, or ask the app owner to set up a custom email provider 😅";
-  if (m.includes('invalid login') || m.includes('invalid credentials') || m.includes('wrong password')) return "That email/password combo isn't ringing any bells. Double-check and try again!";
-  if (m.includes('already registered') || m.includes('already exists') || m.includes('user_already_exists')) return "Looks like that email's taken. Try signing in instead!";
-  if (m.includes('email not confirmed')) return "Almost there! Check your inbox and confirm your email first.";
-  if (m.includes('network') || m.includes('fetch')) return "Couldn't reach the server — check your connection and try again.";
-  if (m.includes('password') && m.includes('short')) return "That password's a little shy. Make it at least 6 characters!";
-  if (m.includes('couple space is already full')) return "Oops — that partner space is already full! Each space is just for two 💑";
-  if (m.includes('already a member')) return "You're already connected to this partner space!";
-  if (m.includes('invalid invite') || m.includes('invalid code')) return "That invite code doesn't exist. Double-check the link and try again!";
-  if (m.includes('row-level security') || m.includes('row level security') || m.includes('permission denied')) return "The database blocked that save. If you were joining a partner, that space may already be full.";
-  if (m.includes('database error') || m.includes('duplicate key')) return "Something in the database got in the way. Give it another go, or sign in if you already have an account.";
-  return "Something went sideways on our end. Give it another go!";
-};
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -33,13 +18,16 @@ const Auth = () => {
   const [displayName, setDisplayName] = useState('');
   const [mode, setMode] = useState<AppMode>('couple');
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, signUp, user, profile, couple, loading } = useAuth();
+  const [showForgot, setShowForgot] = useState(() => searchParams.get('forgot') === '1');
+  const [resetSentTo, setResetSentTo] = useState<string | null>(null);
+  const [forgotError, setForgotError] = useState<string | null>(null);
+  const { signIn, signUp, requestPasswordReset, user, profile, couple, loading, passwordRecovery, recoveryPending, recoveryError } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
   // Redirect already-authenticated users away from /auth
   useEffect(() => {
-    if (loading || !user) return;
+    if (loading || !user || passwordRecovery || recoveryPending || recoveryError) return;
     if (inviteCode) {
       navigate(`/join/${inviteCode}`, { replace: true });
       return;
@@ -49,7 +37,7 @@ const Auth = () => {
     } else {
       navigate('/', { replace: true });
     }
-  }, [user, profile, couple, loading, inviteCode, navigate]);
+  }, [user, profile, couple, loading, inviteCode, navigate, passwordRecovery, recoveryPending, recoveryError]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,6 +71,25 @@ const Auth = () => {
     setIsLoading(false);
   };
 
+  const handleForgot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotError(null);
+    setIsLoading(true);
+    const { error } = await requestPasswordReset(email);
+    setIsLoading(false);
+    if (error) {
+      const description = friendlyError(error.message);
+      setForgotError(description);
+      toast({ title: "Couldn't send the reset email", description, variant: 'destructive' });
+      return;
+    }
+    setResetSentTo(email.trim());
+    toast({
+      title: 'Check your inbox',
+      description: 'If that email has a Baby Tinder account, a reset link is on the way.',
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <div className="w-full max-w-md">
@@ -100,9 +107,10 @@ const Auth = () => {
         </div>
 
         <Card className="p-6 bg-card border border-border">
-          <div className="flex gap-1 p-1 bg-muted rounded-full mb-6">
+          {!showForgot && <div className="flex gap-1 p-1 bg-muted rounded-full mb-6">
             <button
-              onClick={() => setIsSignUp(false)}
+              type="button"
+              onClick={() => { setIsSignUp(false); setShowForgot(false); }}
               className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${
                 !isSignUp ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
               }`}
@@ -111,7 +119,8 @@ const Auth = () => {
               Sign In
             </button>
             <button
-              onClick={() => setIsSignUp(true)}
+              type="button"
+              onClick={() => { setIsSignUp(true); setShowForgot(false); }}
               className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${
                 isSignUp ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
               }`}
@@ -119,8 +128,67 @@ const Auth = () => {
               <UserPlus className="w-4 h-4" />
               Sign Up
             </button>
-          </div>
+          </div>}
 
+          {showForgot ? (
+            resetSentTo ? (
+              <div className="space-y-4" role="status">
+                <h2 className="text-xl font-bold text-foreground">Check your inbox</h2>
+                <p className="text-sm text-muted-foreground">
+                  If <span className="font-medium text-foreground">{resetSentTo}</span> has a Baby Tinder account, we just sent a link to pick a new password. It can take a minute, and it sometimes lands in spam.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Open the link to choose a new password and sign back in to Baby Tinder.
+                </p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => { setShowForgot(false); setResetSentTo(null); setForgotError(null); }}
+                >
+                  Back to sign in
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={handleForgot} className="space-y-4">
+                <div className="space-y-1">
+                  <h2 className="text-xl font-bold text-foreground">Forgot your password?</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Enter the email you use for Baby Tinder and we'll send you a link to pick a new one.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="reset-email">Email</Label>
+                  <Input
+                    id="reset-email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    className="h-12"
+                  />
+                </div>
+                {forgotError && (
+                  <p className="text-sm text-destructive" role="alert">{forgotError}</p>
+                )}
+                <Button type="submit" disabled={isLoading} size="lg" className="w-full h-12 text-base font-semibold">
+                  {isLoading ? 'Sending…' : 'Send reset link'}
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => { setShowForgot(false); setForgotError(null); }}
+                  className="w-full text-sm font-medium text-muted-foreground hover:text-foreground py-2"
+                >
+                  Back to sign in
+                </button>
+              </form>
+            )
+          ) : (
+          <>
           {!isSignUp && inviteCode && (
             <div className="mb-4 p-4 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-800 space-y-1">
               <p className="font-semibold">Heads up! 👀</p>
@@ -203,12 +271,25 @@ const Auth = () => {
                 minLength={6}
                 className="h-12"
               />
+              {!isSignUp && (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => { setShowForgot(true); setForgotError(null); setResetSentTo(null); }}
+                    className="text-sm font-medium text-primary underline-offset-4 hover:underline py-1"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              )}
             </div>
 
             <Button type="submit" disabled={isLoading} size="lg" className="w-full h-12 text-base font-semibold">
               {isLoading ? 'Please wait...' : isSignUp ? 'Create Account' : 'Sign In'}
             </Button>
           </form>
+          </>
+          )}
         </Card>
       </div>
     </div>

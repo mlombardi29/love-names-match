@@ -1,6 +1,22 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  capturePasswordRecoveryFromUrl,
+  clearCapturedRecoveryError,
+  clearPasswordRecovery,
+  consumePendingRecoveryOtp,
+  hasPasswordRecoveryFlag,
+  isRecoveryOtpPending,
+  markPasswordRecovery,
+  PASSWORD_RESET_REDIRECT,
+  peekCapturedRecoveryError,
+  sawPasswordRecoveryCallback,
+  settleRecoveryOtp,
+} from '@/lib/passwordReset';
+
+// Read the recovery link before the auth client finishes exchanging it.
+capturePasswordRecoveryFromUrl();
 
 export type AppMode = 'solo' | 'couple';
 
@@ -27,6 +43,15 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, displayName: string, mode: AppMode) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<{ error: Error | null }>;
+  updatePassword: (password: string) => Promise<{ error: Error | null }>;
+  /** True once the recovery link has signed them in and they still need a new password. */
+  passwordRecovery: boolean;
+  /** True while the recovery link is still being checked. */
+  recoveryPending: boolean;
+  /** Set when the recovery link itself failed, until they dismiss it. */
+  recoveryError: string | null;
+  dismissRecovery: () => void;
   createCouple: () => Promise<{ couple: Couple | null; error: Error | null }>;
   joinCoupleByCode: (code: string) => Promise<{ error: Error | null }>;
   refreshCouple: () => Promise<void>;
@@ -41,6 +66,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [partnerProfile, setPartnerProfile] = useState<Profile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [recoveryStatus, setRecoveryStatus] = useState<'idle' | 'exchanging' | 'ready' | 'failed'>(() => {
+    if (peekCapturedRecoveryError()) return 'failed';
+    if (hasPasswordRecoveryFlag()) return 'ready';
+    if (sawPasswordRecoveryCallback()) return 'exchanging';
+    return 'idle';
+  });
+  const [recoveryError, setRecoveryError] = useState<string | null>(() => peekCapturedRecoveryError());
 
   const loadUserData = useCallback(async (userId: string) => {
     // Load my profile
@@ -95,11 +127,51 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (user) await loadUserData(user.id);
   }, [user, loadUserData]);
 
+  const dismissRecovery = useCallback(() => {
+    clearPasswordRecovery();
+    clearCapturedRecoveryError();
+    settleRecoveryOtp();
+    setRecoveryStatus('idle');
+    setRecoveryError(null);
+  }, []);
+
+  const failRecovery = useCallback((message: string) => {
+    clearPasswordRecovery();
+    settleRecoveryOtp();
+    setRecoveryStatus('failed');
+    setRecoveryError(message);
+  }, []);
+
+  const acceptRecovery = useCallback(() => {
+    markPasswordRecovery();
+    settleRecoveryOtp();
+    setRecoveryStatus('ready');
+    setRecoveryError(null);
+  }, []);
+
   useEffect(() => {
+    let cancelled = false;
+    let failTimer: number | undefined;
+    const otp = consumePendingRecoveryOtp();
+    if (otp) {
+      supabase.auth.verifyOtp(otp).then(({ error }) => {
+        if (cancelled) return;
+        if (error) failRecovery(error.message);
+        else acceptRecovery();
+      });
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+
+        if (event === 'PASSWORD_RECOVERY') {
+          acceptRecovery();
+        } else if (event === 'SIGNED_OUT') {
+          clearPasswordRecovery();
+          setRecoveryStatus('idle');
+        }
 
         if (session?.user) {
           setTimeout(() => loadUserData(session.user.id), 0);
@@ -113,16 +185,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (cancelled) return;
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
         loadUserData(session.user.id);
+      } else if (hasPasswordRecoveryFlag() && !sawPasswordRecoveryCallback()) {
+        failRecovery('That reset link has expired or was already used. Request a fresh one and try again.');
       }
       setLoading(false);
+
+      // PASSWORD_RECOVERY is emitted on a timer after the session is saved.
+      // Give that timer a moment, then treat a silent link as a failure.
+      if (sawPasswordRecoveryCallback() && !isRecoveryOtpPending() && !otp) {
+        failTimer = window.setTimeout(() => {
+          if (cancelled || hasPasswordRecoveryFlag()) return;
+          failRecovery(peekCapturedRecoveryError() ?? 'That reset link is invalid or has expired.');
+        }, 50);
+      }
     });
 
-    return () => subscription.unsubscribe();
-  }, [loadUserData]);
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+      if (failTimer) window.clearTimeout(failTimer);
+    };
+  }, [acceptRecovery, failRecovery, loadUserData]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -155,10 +243,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
+    dismissRecovery();
     await supabase.auth.signOut();
     setProfile(null);
     setCouple(null);
     setPartnerProfile(null);
+  };
+
+  const requestPasswordReset = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: PASSWORD_RESET_REDIRECT,
+    });
+    return { error: error as Error | null };
+  };
+
+  const updatePassword = async (password: string) => {
+    const { error } = await supabase.auth.updateUser({ password });
+    if (!error) dismissRecovery();
+    return { error: error as Error | null };
   };
 
   const generateInviteCode = (): string => {
@@ -244,7 +346,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   return (
     <AuthContext.Provider value={{
       user, profile, couple, partnerProfile, session, loading,
-      signIn, signUp, signOut, createCouple, joinCoupleByCode, refreshCouple,
+      signIn, signUp, signOut, requestPasswordReset, updatePassword,
+      passwordRecovery: recoveryStatus === 'ready' && hasPasswordRecoveryFlag(),
+      recoveryPending: recoveryStatus === 'exchanging',
+      recoveryError: recoveryStatus === 'failed' ? recoveryError : null,
+      dismissRecovery,
+      createCouple, joinCoupleByCode, refreshCouple,
     }}>
       {children}
     </AuthContext.Provider>

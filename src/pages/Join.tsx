@@ -8,14 +8,14 @@ import { useToast } from '@/hooks/use-toast';
 
 const Join = () => {
   const { code } = useParams<{ code: string }>();
-  const { user, couple, joinCoupleByCode, loading } = useAuth();
+  const { user, couple, joinCoupleByCode, loading, passwordRecovery, recoveryPending, recoveryError } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [status, setStatus] = useState<'idle' | 'joining' | 'done' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || passwordRecovery || recoveryPending || recoveryError) return;
 
     // Not signed in — send to auth with invite param
     if (!user) {
@@ -56,7 +56,7 @@ const Join = () => {
         }
       });
     }
-  }, [user, couple, loading, code, status, joinCoupleByCode, navigate, toast]);
+  }, [user, couple, loading, code, status, joinCoupleByCode, navigate, toast, passwordRecovery, recoveryPending, recoveryError]);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
